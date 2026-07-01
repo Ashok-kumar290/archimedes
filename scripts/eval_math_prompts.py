@@ -17,6 +17,22 @@ DEFAULT_PROMPTS = [
     "Prove that 1 + 3 + 5 + ... + (2n - 1) = n^2.",
 ]
 
+EXPECTED_SUBSTRINGS = {
+    "Compute 247 + 389.": ["636"],
+    "Solve for x: 7x + 5 = 47.": ["x = 6", "x=6"],
+    "Find the sum of the first 17 odd positive integers.": ["289"],
+    "Find 1 + 2 + ... + 25.": ["325"],
+}
+
+ARTIFACTS = ["Copyright", "theory", "Require", "import", "/-", "(*"]
+
+
+def score(prompt: str, output: str) -> dict[str, object]:
+    expected = EXPECTED_SUBSTRINGS.get(prompt, [])
+    exact_hit = any(token in output for token in expected) if expected else None
+    artifacts = [marker for marker in ARTIFACTS if marker in output]
+    return {"expected_hit": exact_hit, "artifacts": artifacts}
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a fixed prompt suite against an Archimedes checkpoint.")
@@ -47,10 +63,12 @@ def main() -> int:
         ]
         result = subprocess.run(cmd, check=True, text=True, capture_output=True)
         row = json.loads(result.stdout)
+        row["score"] = score(prompt, row["output"])
         rows.append(row)
         print("=" * 80)
         print(row["prompt"])
         print(row["output"])
+        print("SCORE", json.dumps(row["score"], ensure_ascii=False))
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8") as handle:

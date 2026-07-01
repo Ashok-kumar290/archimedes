@@ -41,9 +41,26 @@ def load_model(checkpoint_path: Path, config_path: Path | None, device: torch.de
 
 
 def trim_at_stop(text: str, stop_text: str) -> str:
-    if stop_text and stop_text in text:
-        return text.split(stop_text, 1)[0]
-    return text
+    if not stop_text:
+        return text
+    variants = [
+        stop_text,
+        stop_text.replace("endofsolution", " end of solution "),
+        "<| end of solution |>",
+        "<| end of solution | >",
+        "< | end of solution | >",
+    ]
+    cut = len(text)
+    for variant in variants:
+        pos = text.find(variant)
+        if pos >= 0:
+            cut = min(cut, pos)
+    artifact_markers = ["Copyright", "theory ", "Require ", "/-", "(*", "import "]
+    for marker in artifact_markers:
+        pos = text.find(marker)
+        if pos >= 0:
+            cut = min(cut, pos)
+    return text[:cut]
 
 
 def clean_decoded_text(text: str) -> str:
