@@ -191,6 +191,10 @@ class ArchimedesMathModel(nn.Module):
                         logits[batch_idx, seen] * repetition_penalty,
                         logits[batch_idx, seen] / repetition_penalty,
                     )
+            if temperature <= 0.0 or top_k == 1:
+                next_id = torch.argmax(logits, dim=-1, keepdim=True)
+                input_ids = torch.cat([input_ids, next_id], dim=1)
+                continue
             logits = logits / max(temperature, 1e-6)
             if top_k > 0:
                 values, _ = torch.topk(logits, min(top_k, logits.size(-1)))
