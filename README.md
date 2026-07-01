@@ -51,3 +51,18 @@ Build token shards:
 ```bash
 python3 scripts/build_token_shards.py   --tokenizer /home/seyominaoto/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json   --train-manifest /home/seyominaoto/archimedes-data/metadata/math_train_manifest_v2.jsonl   --val-manifest /home/seyominaoto/archimedes-data/metadata/math_val_manifest_v2.jsonl   --out-dir /home/seyominaoto/archimedes-data/shards/math_tokens_v2_balanced
 ```
+
+## Generate From A Checkpoint
+
+After training in Colab, generate from a saved checkpoint:
+
+```bash
+python3 scripts/generate_math.py \
+  --checkpoint /content/archimedes-data/checkpoints/archimedes_math_small_v2_long/step_006000.pt \
+  --tokenizer /content/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json \
+  --prompt "Prove that the sum of the first n odd numbers is n^2." \
+  --prompt-style solution \
+  --max-new-tokens 256 \
+  --temperature 0.7 \
+  --top-k 50
+```
