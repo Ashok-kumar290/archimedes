@@ -39,6 +39,17 @@ def load_model(checkpoint_path: Path, config_path: Path | None, device: torch.de
     return model.to(device).eval()
 
 
+def clean_decoded_text(text: str) -> str:
+    return (
+        text.replace("Ġ", " ")
+        .replace("Ċ", "\n")
+        .replace("ĉ", "\t")
+        .replace(" :", ":")
+        .replace(" .", ".")
+        .replace(" ,", ",")
+    )
+
+
 def build_prompt(user_prompt: str, style: str) -> str:
     if style == "plain":
         return user_prompt
@@ -59,6 +70,9 @@ def main() -> int:
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top-k", type=int, default=50)
+    parser.add_argument("--top-p", type=float, default=0.95)
+    parser.add_argument("--repetition-penalty", type=float, default=1.1)
+    parser.add_argument("--raw-output", action="store_true")
     parser.add_argument("--seed", type=int, default=1234)
     args = parser.parse_args()
 
@@ -81,8 +95,12 @@ def main() -> int:
             max_new_tokens=args.max_new_tokens,
             temperature=args.temperature,
             top_k=args.top_k,
+            top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty,
         )
     text = tokenizer.decode(y[0].detach().cpu().tolist())
+    if not args.raw_output:
+        text = clean_decoded_text(text)
     print(json.dumps({
         "checkpoint": str(args.checkpoint),
         "device": str(device),

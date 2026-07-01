@@ -169,15 +169,42 @@ class ArchimedesMathModel(nn.Module):
         return logits, loss
 
     @torch.no_grad()
-    def generate(self, input_ids: torch.Tensor, max_new_tokens: int, temperature: float = 0.8, top_k: int = 50) -> torch.Tensor:
+    def generate(
+        self,
+        input_ids: torch.Tensor,
+        max_new_tokens: int,
+        temperature: float = 0.8,
+        top_k: int = 50,
+        top_p: float = 1.0,
+        repetition_penalty: float = 1.0,
+    ) -> torch.Tensor:
         self.eval()
         for _ in range(max_new_tokens):
             idx = input_ids[:, -self.cfg.context_length :]
             logits, _ = self(idx)
-            logits = logits[:, -1, :] / max(temperature, 1e-6)
+            logits = logits[:, -1, :]
+            if repetition_penalty != 1.0:
+                for batch_idx in range(input_ids.size(0)):
+                    seen = torch.unique(input_ids[batch_idx])
+                    logits[batch_idx, seen] = torch.where(
+                        logits[batch_idx, seen] < 0,
+                        logits[batch_idx, seen] * repetition_penalty,
+                        logits[batch_idx, seen] / repetition_penalty,
+                    )
+            logits = logits / max(temperature, 1e-6)
             if top_k > 0:
                 values, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < values[:, [-1]]] = -float("inf")
+            if top_p < 1.0:
+                sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+                sorted_probs = F.softmax(sorted_logits, dim=-1)
+                cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+                remove = cumulative_probs > top_p
+                remove[..., 1:] = remove[..., :-1].clone()
+                remove[..., 0] = False
+                sorted_logits[remove] = -float("inf")
+                logits = torch.full_like(logits, -float("inf"))
+                logits.scatter_(dim=-1, index=sorted_indices, src=sorted_logits)
             probs = F.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1)
             input_ids = torch.cat([input_ids, next_id], dim=1)
