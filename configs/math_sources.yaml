@@ -1,0 +1,91 @@
+# Archimedes Mathematics Dataset v0
+#
+# Scope:
+# - math-only retrieval
+# - provenance and license metadata preserved per source
+# - starts with open web pages and arXiv metadata, then expands to full papers,
+#   open textbooks, contest problems, and formal proof corpora.
+#
+# Notes:
+# - Wikipedia content is CC-BY-SA.
+# - arXiv API metadata is retrieved here; individual paper licenses vary and
+#   must be tracked before using full PDFs/TeX sources for training.
+sources:
+  - name: math_wikipedia_core_topics
+    domain: mathematics
+    license: CC-BY-SA-4.0
+    source_type: html
+    urls:
+      - https://en.wikipedia.org/wiki/Mathematics
+      - https://en.wikipedia.org/wiki/Arithmetic
+      - https://en.wikipedia.org/wiki/Algebra
+      - https://en.wikipedia.org/wiki/Abstract_algebra
+      - https://en.wikipedia.org/wiki/Linear_algebra
+      - https://en.wikipedia.org/wiki/Elementary_algebra
+      - https://en.wikipedia.org/wiki/Number_theory
+      - https://en.wikipedia.org/wiki/Geometry
+      - https://en.wikipedia.org/wiki/Euclidean_geometry
+      - https://en.wikipedia.org/wiki/Analytic_geometry
+      - https://en.wikipedia.org/wiki/Differential_geometry
+      - https://en.wikipedia.org/wiki/Topology
+      - https://en.wikipedia.org/wiki/Calculus
+      - https://en.wikipedia.org/wiki/Differential_calculus
+      - https://en.wikipedia.org/wiki/Integral
+      - https://en.wikipedia.org/wiki/Multivariable_calculus
+      - https://en.wikipedia.org/wiki/Real_analysis
+      - https://en.wikipedia.org/wiki/Complex_analysis
+      - https://en.wikipedia.org/wiki/Functional_analysis
+      - https://en.wikipedia.org/wiki/Measure_(mathematics)
+      - https://en.wikipedia.org/wiki/Probability_theory
+      - https://en.wikipedia.org/wiki/Statistics
+      - https://en.wikipedia.org/wiki/Combinatorics
+      - https://en.wikipedia.org/wiki/Graph_theory
+      - https://en.wikipedia.org/wiki/Discrete_mathematics
+      - https://en.wikipedia.org/wiki/Logic
+      - https://en.wikipedia.org/wiki/Mathematical_logic
+      - https://en.wikipedia.org/wiki/Set_theory
+      - https://en.wikipedia.org/wiki/Category_theory
+      - https://en.wikipedia.org/wiki/Numerical_analysis
+      - https://en.wikipedia.org/wiki/Optimization_(mathematics)
+      - https://en.wikipedia.org/wiki/Dynamical_system
+      - https://en.wikipedia.org/wiki/Differential_equation
+      - https://en.wikipedia.org/wiki/Partial_differential_equation
+      - https://en.wikipedia.org/wiki/Mathematical_proof
+      - https://en.wikipedia.org/wiki/Theorem
+
+  - name: math_arxiv_metadata_core
+    domain: mathematics_research
+    license: arXiv metadata; paper licenses vary by record
+    source_type: xml
+    urls:
+      - https://export.arxiv.org/api/query?search_query=cat:math.AG&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.AT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.AP&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.CA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.CO&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.CT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.CV&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.DG&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.DS&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.FA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.GM&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.GN&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.GR&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.GT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.HO&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.IT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.KT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.LO&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.MG&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.MP&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.NA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.NT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.OA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.OC&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.PR&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.QA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.RA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.RT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.SG&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.SP&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.ST&start=0&max_results=100

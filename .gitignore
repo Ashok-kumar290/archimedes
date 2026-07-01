@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Archimedes generated artifacts
+reports/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+metrics.jsonl
+
+# Data should live outside git.
+archimedes-data/
+data/
+raw/
+cleaned/
+parsed/
+metadata/
+shards/
+tokenizers/
+checkpoints/
+colab/

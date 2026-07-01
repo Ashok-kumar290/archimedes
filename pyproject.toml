@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "archimedes-math"
+version = "0.1.0"
+description = "Archimedes math-domain data and decoder-only Transformer training pipeline."
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "torch",
+  "tokenizers",
+  "sympy",
+  "matplotlib"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

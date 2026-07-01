@@ -1,0 +1,32 @@
+# v0 seed retrieval set. Keep sources explicit and provenance-friendly.
+# The parser supports a small YAML subset: a top-level `sources:` list where
+# each source contains scalar fields and a `urls:` list.
+sources:
+  - name: wikipedia_science_seed
+    domain: general_science
+    license: CC-BY-SA-4.0
+    source_type: html
+    urls:
+      - https://en.wikipedia.org/wiki/Mathematics
+      - https://en.wikipedia.org/wiki/Physics
+      - https://en.wikipedia.org/wiki/Chemistry
+      - https://en.wikipedia.org/wiki/Computer_science
+      - https://en.wikipedia.org/wiki/Biology
+
+  - name: project_gutenberg_public_domain_seed
+    domain: books
+    license: Public domain
+    source_type: text
+    urls:
+      - https://www.gutenberg.org/cache/epub/1342/pg1342.txt
+      - https://www.gutenberg.org/cache/epub/84/pg84.txt
+
+  - name: arxiv_science_seed
+    domain: research
+    license: arXiv metadata; paper licenses vary by record
+    source_type: xml
+    urls:
+      - https://export.arxiv.org/api/query?search_query=cat:math.HO&start=0&max_results=10
+      - https://export.arxiv.org/api/query?search_query=cat:physics.gen-ph&start=0&max_results=10
+      - https://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=10
+

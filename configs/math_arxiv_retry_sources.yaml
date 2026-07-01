@@ -1,0 +1,17 @@
+# arXiv math categories that were rate-limited during the first math pass.
+sources:
+  - name: math_arxiv_metadata_core
+    domain: mathematics_research
+    license: arXiv metadata; paper licenses vary by record
+    source_type: xml
+    urls:
+      - https://export.arxiv.org/api/query?search_query=cat:math.NT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.OA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.OC&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.PR&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.QA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.RA&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.RT&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.SG&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.SP&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:math.ST&start=0&max_results=100
