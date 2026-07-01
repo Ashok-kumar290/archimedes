@@ -66,3 +66,28 @@ python3 scripts/generate_math.py \
   --temperature 0.7 \
   --top-k 50
 ```
+
+## Supervised Fine-Tuning
+
+The pretrained checkpoints are base next-token models. To make them answer in worked-solution format, build a seed SFT set and fine-tune from the best pretrained checkpoint:
+
+```bash
+python3 scripts/build_sft_seed.py \
+  --out /content/archimedes-data/sft/math_seed_sft.jsonl \
+  --count 20000
+
+python3 scripts/train_sft_math.py \
+  --init-checkpoint /content/archimedes-data/checkpoints/archimedes_math_small_v2_long/step_006000.pt \
+  --tokenizer /content/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json \
+  --sft-jsonl /content/archimedes-data/sft/math_seed_sft.jsonl \
+  --data-root /content/archimedes-data \
+  --run-name archimedes_math_small_sft_seed \
+  --batch-size 16 \
+  --grad-accum 2 \
+  --max-steps 1000 \
+  --lr 5e-5 \
+  --eval-interval 100 \
+  --eval-batches 20 \
+  --save-interval 250 \
+  --compile
+```
