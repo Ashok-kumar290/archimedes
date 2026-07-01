@@ -6,7 +6,7 @@ separately as a payload archive because it should not be committed to git.
 ## 1. Clone
 
 ```bash
-git clone <YOUR_REPO_URL> /content/archimedes
+git clone https://github.com/Ashok-kumar290/archimedes.git /content/archimedes
 cd /content/archimedes
 pip install -e .
 ```
