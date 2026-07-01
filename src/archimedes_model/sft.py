@@ -15,6 +15,7 @@ from archimedes_model.model import ArchimedesMathModel, ModelConfig
 
 
 DEFAULT_DATA_ROOT = Path("/home/seyominaoto/archimedes-data")
+DEFAULT_END_MARKER = "<|endofsolution|>"
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,7 @@ class SFTExample:
 
 
 class SFTDataset:
-    def __init__(self, path: Path, tokenizer: Tokenizer, context_length: int, seed: int = 1234) -> None:
+    def __init__(self, path: Path, tokenizer: Tokenizer, context_length: int, seed: int = 1234, end_marker: str = DEFAULT_END_MARKER) -> None:
         self.tokenizer = tokenizer
         self.context_length = context_length
         self.rng = random.Random(seed)
@@ -37,7 +38,7 @@ class SFTDataset:
                 prompt = row["prompt"].strip()
                 completion = row["completion"].strip()
                 formatted_prompt = f"Problem: {prompt}\nSolution:"
-                full_text = f"{formatted_prompt} {completion}\n"
+                full_text = f"{formatted_prompt} {completion} {end_marker}\n"
                 prompt_ids = tokenizer.encode(formatted_prompt).ids
                 full_ids = tokenizer.encode(full_text).ids
                 if len(full_ids) < 2:
@@ -153,6 +154,7 @@ def main() -> int:
     parser.add_argument("--save-interval", type=int, default=250)
     parser.add_argument("--log-interval", type=int, default=10)
     parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument("--end-marker", default=DEFAULT_END_MARKER)
     parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
@@ -170,8 +172,8 @@ def main() -> int:
     val_path = split_dir / "val.jsonl"
     split_examples(args.sft_jsonl, train_path, val_path, args.val_frac, args.seed)
     raw_model = model._orig_mod if hasattr(model, "_orig_mod") else model
-    train_data = SFTDataset(train_path, tokenizer, raw_model.cfg.context_length, seed=args.seed)
-    val_data = SFTDataset(val_path, tokenizer, raw_model.cfg.context_length, seed=args.seed + 1)
+    train_data = SFTDataset(train_path, tokenizer, raw_model.cfg.context_length, seed=args.seed, end_marker=args.end_marker)
+    val_data = SFTDataset(val_path, tokenizer, raw_model.cfg.context_length, seed=args.seed + 1, end_marker=args.end_marker)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95), weight_decay=args.weight_decay)
     scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda" and amp_dtype == torch.float16)
@@ -185,6 +187,7 @@ def main() -> int:
         "amp_dtype": str(amp_dtype),
         "train_examples": len(train_data),
         "val_examples": len(val_data),
+        "end_marker": args.end_marker,
     }), flush=True)
 
     model.train()

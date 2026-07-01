@@ -91,3 +91,32 @@ python3 scripts/train_sft_math.py \
   --save-interval 250 \
   --compile
 ```
+
+
+For SFT runs after this revision, keep the explicit solution end marker enabled. It teaches the model when to stop instead of drifting back into pretraining text. A safer rerun command is:
+
+```bash
+python3 scripts/train_sft_math.py \
+  --init-checkpoint /content/archimedes-data/checkpoints/archimedes_math_small_v2_long/step_006000.pt \
+  --tokenizer /content/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json \
+  --sft-jsonl /content/archimedes-data/sft/math_seed_sft.jsonl \
+  --data-root /content/archimedes-data \
+  --run-name archimedes_math_small_sft_seed_stop \
+  --batch-size 16 \
+  --grad-accum 2 \
+  --max-steps 1000 \
+  --lr 5e-5 \
+  --eval-interval 50 \
+  --eval-batches 20 \
+  --save-interval 50 \
+  --compile
+```
+
+Compare checkpoints with:
+
+```bash
+python3 scripts/eval_math_prompts.py \
+  --checkpoint /content/archimedes-data/checkpoints/archimedes_math_small_sft_seed_stop/step_001000.pt \
+  --tokenizer /content/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json \
+  --out /content/archimedes-data/checkpoints/archimedes_math_small_sft_seed_stop/eval_prompts.jsonl
+```

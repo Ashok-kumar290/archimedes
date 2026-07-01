@@ -11,6 +11,7 @@ from archimedes_model.model import ArchimedesMathModel, ModelConfig
 
 
 DEFAULT_DATA_ROOT = Path("/home/seyominaoto/archimedes-data")
+DEFAULT_STOP_TEXT = "<|endofsolution|>"
 
 
 def device_and_dtype() -> tuple[torch.device, torch.dtype]:
@@ -37,6 +38,12 @@ def load_model(checkpoint_path: Path, config_path: Path | None, device: torch.de
     model = ArchimedesMathModel(cfg)
     model.load_state_dict(normalize_state_dict(checkpoint["model"]))
     return model.to(device).eval()
+
+
+def trim_at_stop(text: str, stop_text: str) -> str:
+    if stop_text and stop_text in text:
+        return text.split(stop_text, 1)[0]
+    return text
 
 
 def clean_decoded_text(text: str) -> str:
@@ -73,6 +80,7 @@ def main() -> int:
     parser.add_argument("--top-p", type=float, default=0.95)
     parser.add_argument("--repetition-penalty", type=float, default=1.1)
     parser.add_argument("--raw-output", action="store_true")
+    parser.add_argument("--stop-text", default=DEFAULT_STOP_TEXT)
     parser.add_argument("--seed", type=int, default=1234)
     args = parser.parse_args()
 
@@ -99,6 +107,7 @@ def main() -> int:
             repetition_penalty=args.repetition_penalty,
         )
     text = tokenizer.decode(y[0].detach().cpu().tolist())
+    text = trim_at_stop(text, args.stop_text)
     if not args.raw_output:
         text = clean_decoded_text(text)
     print(json.dumps({
