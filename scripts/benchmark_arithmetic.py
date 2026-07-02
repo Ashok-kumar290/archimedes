@@ -63,6 +63,15 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
         val = Fraction(a, b) + Fraction(c, d)
         expected = str(val.numerator) if val.denominator == 1 else f"{val.numerator}/{val.denominator}"
         add("fraction", f"Compute {a}/{b} + {c}/{d}.", expected)
+
+    # worded operator families use a separate rng stream so the original
+    # 249 seeded problems above stay byte-identical across script versions
+    worded = random.Random(seed + 1)
+    for _ in range(per_family):
+        a, b = worded.randint(10, 9999), worded.randint(10, 9999)
+        add("add_worded", f"Compute {a} plus {b}.", str(a + b))
+        a, b = worded.randint(10, 9999), worded.randint(10, 9999)
+        add("sub_worded", f"Compute {a} minus {b}.", str(a - b))
     return problems
 
 
