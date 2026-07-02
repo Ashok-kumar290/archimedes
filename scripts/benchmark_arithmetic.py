@@ -76,7 +76,18 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
 
 
 def norm(text: str) -> str:
-    return re.sub(r"\s+", "", text).strip(".").lower()
+    # drop whitespace and thousands separators so "13,118" == "13118"
+    return re.sub(r"[\s,]+", "", text).strip(".").lower()
+
+
+def is_hit(expected: str, observed: str | None) -> bool:
+    if observed is None:
+        return False
+    exp, obs = norm(expected), norm(observed)
+    if obs == exp:
+        return True
+    # generous to baselines: accept a bare "6" for expected "x = 6"
+    return "=" in exp and obs == exp.split("=")[-1]
 
 
 def extract_final(output: str) -> str | None:
@@ -118,16 +129,32 @@ class ArchimedesBackend:
         return extract_final(text)
 
 
-FEW_SHOT = (
-    "Problem: Compute 46 + 58.\nAnswer: 104\n\n"
-    "Problem: Solve for x: 3x + 4 = 19.\nAnswer: x = 5\n\n"
-    "Problem: What is 25% of 80?\nAnswer: 20\n\n"
-    "Problem: Compute 1/2 + 1/3.\nAnswer: 5/6\n\n"
+FEW_SHOT_PAIRS = (
+    ("Compute 46 + 58.", "104"),
+    ("Solve for x: 3x + 4 = 19.", "x = 5"),
+    ("What is 25% of 80?", "20"),
+    ("Compute 1/2 + 1/3.", "5/6"),
 )
+FEW_SHOT = "".join(f"Problem: {p}\nAnswer: {a}\n\n" for p, a in FEW_SHOT_PAIRS)
+
+
+def extract_chat_answer(completion: str) -> str | None:
+    # generous extraction for chain-of-thought outputs: prefer \boxed{},
+    # then an explicit "Answer:" line, then the last number/fraction anywhere
+    boxed = re.findall(r"\\boxed\{([^}]*)\}", completion)
+    if boxed:
+        return boxed[-1].strip()
+    marked = re.findall(r"answer\s*(?:is|:)\s*([^\n]+)", completion, flags=re.IGNORECASE)
+    if marked:
+        return marked[-1].strip().strip("*").strip().rstrip(".")
+    numbers = re.findall(r"-?\d[\d,]*(?:/\d+)?(?:\.\d+)?", completion)
+    if numbers:
+        return numbers[-1]
+    return completion.strip().split("\n")[-1].strip() or None
 
 
 class HFBackend:
-    def __init__(self, model_name: str, max_new_tokens: int = 24) -> None:
+    def __init__(self, model_name: str, max_new_tokens: int = 24, chat: bool = False) -> None:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -140,11 +167,24 @@ class HFBackend:
         self.model.eval()
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.max_new_tokens = max_new_tokens
-        self.name = f"hf:{model_name}"
+        self.chat = chat
+        # chat models reason step by step before answering; give them room
+        self.max_new_tokens = max(max_new_tokens, 512) if chat else max_new_tokens
+        self.name = f"hf:{model_name}" + (":chat" if chat else "")
 
     def answer(self, prompt: str) -> str | None:
-        text = FEW_SHOT + f"Problem: {prompt}\nAnswer:"
+        if self.chat:
+            messages = []
+            for shot_prompt, shot_answer in FEW_SHOT_PAIRS:
+                messages.append({"role": "user", "content": shot_prompt})
+                messages.append({"role": "assistant", "content": f"Answer: {shot_answer}"})
+            messages.append({
+                "role": "user",
+                "content": f"{prompt}\nEnd your reply with the final result as 'Answer: <result>'.",
+            })
+            text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        else:
+            text = FEW_SHOT + f"Problem: {prompt}\nAnswer:"
         inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
         with self.torch.no_grad():
             out = self.model.generate(
@@ -152,6 +192,8 @@ class HFBackend:
                 pad_token_id=self.tokenizer.pad_token_id,
             )
         completion = self.tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        if self.chat:
+            return extract_chat_answer(completion)
         return completion.split("\n")[0].strip() or None
 
 
@@ -160,6 +202,8 @@ def main() -> int:
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--tokenizer", type=Path, default=None)
     parser.add_argument("--hf-model", default=None)
+    parser.add_argument("--hf-chat", action="store_true",
+                        help="use the model's chat template (for instruct models)")
     parser.add_argument("--per-family", type=int, default=25)
     parser.add_argument("--seed", type=int, default=777)
     parser.add_argument("--max-new-tokens", type=int, default=400)
@@ -179,7 +223,7 @@ def main() -> int:
             raise SystemExit("--tokenizer is required with --checkpoint")
         backend = ArchimedesBackend(args.checkpoint, args.tokenizer, args.max_new_tokens)
     elif args.hf_model is not None:
-        backend = HFBackend(args.hf_model)
+        backend = HFBackend(args.hf_model, chat=args.hf_chat)
     else:
         raise SystemExit("pass either --checkpoint/--tokenizer or --hf-model")
 
@@ -187,7 +231,7 @@ def main() -> int:
     per_family: dict[str, list[bool]] = {}
     for i, p in enumerate(problems):
         observed = backend.answer(p["prompt"])
-        hit = observed is not None and norm(p["expected"]) == norm(observed)
+        hit = is_hit(p["expected"], observed)
         per_family.setdefault(p["family"], []).append(hit)
         results.append({**p, "observed": observed, "hit": hit})
         if (i + 1) % 25 == 0:
