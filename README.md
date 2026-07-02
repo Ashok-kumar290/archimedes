@@ -91,8 +91,16 @@ Current measured state:
   worded prompt "Compute 8351 plus 4767." answers 13118 exactly, and the
   symbolic benchmark recovers to 83.1% (207/249) — above the v6 reference
   — while keeping the phrasing robustness. percent doubled to 44%; the
-  dips moved to fraction (64%) and gcd (68%), the next data targets.
-  v8 (`step_006000.pt`) is the current reference checkpoint.
+  dips moved to fraction (64%) and gcd (68%).
+- coverage-weighted curriculum (run `archimedes_math_small_reasoning_v9`,
+  2026-07-02): gcd/fraction upweighted to ~2x and percent moved to an
+  exhaustively enumerated tiled pool with new 5%/75% traces. Result:
+  **90% (225/249) on the symbolic benchmark** (fraction 100%, percent
+  68%, triangular 100%) and 90.0% on the extended 299-problem set that
+  adds measured worded-operator families (add_worded 96%, sub_worded
+  80%). Held-out eval stays 6/6. Remaining gaps: gcd 72% (did not
+  respond to upweighting), mul 80%, worded subtraction 80%.
+  v9 (`step_006000.pt`) is the current reference checkpoint.
 
 Evaluation honesty rule: there is no tool or routing path anywhere in
 generation. `scripts/generate_math.py`, `scripts/eval_math_prompts.py`, and
@@ -101,9 +109,9 @@ forward passes alone; the historical arithmetic router and the legacy SFT
 builders that trained on eval prompts have been deleted from the codebase.
 
 Generalization vs. recall, stated plainly: the add and sub benchmark
-families draw from a ~10^8 problem space of which training saw under 0.05%,
-so accuracy there (96% and 84% at v8) is true held-out generalization of the
-learned digit algorithms. Smaller families (mul, div, linear, sum formulas) have
+families (symbolic and worded) draw from a ~10^8 problem space of which
+training saw under 0.05%, so accuracy there (92-96% at v9) is true held-out
+generalization of the learned digit algorithms. Smaller families (mul, div, linear, sum formulas) have
 problem spaces that training largely covered, so their scores measure
 learned execution of procedures the model has practiced, not novel
 generalization.
