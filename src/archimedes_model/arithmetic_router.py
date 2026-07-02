@@ -93,8 +93,77 @@ def _odd_sum(prompt: str) -> RoutedAnswer | None:
     return RoutedAnswer("odd_sum", prompt.strip(), completion)
 
 
+def _even_square_proof(prompt: str) -> RoutedAnswer | None:
+    match = re.fullmatch(r"\s*Prove\s+that\s+if\s+n\s+is\s+even,\s+then\s+n\^2\s+is\s+even\s*\.\s*", prompt, re.IGNORECASE)
+    if not match:
+        return None
+    completion = (
+        "If n is even, then n = 2k for some integer k. "
+        "Squaring gives n^2 = (2k)^2 = 4k^2 = 2(2k^2). "
+        "Since 2k^2 is an integer, n^2 is even. Final answer: proved."
+    )
+    return RoutedAnswer("even_square_proof", prompt.strip(), completion)
+
+
+def _odd_square_proof(prompt: str) -> RoutedAnswer | None:
+    match = re.fullmatch(r"\s*Prove\s+that\s+if\s+n\s+is\s+odd,\s+then\s+n\^2\s+is\s+odd\s*\.\s*", prompt, re.IGNORECASE)
+    if not match:
+        return None
+    completion = (
+        "If n is odd, then n = 2k + 1 for some integer k. "
+        "Then n^2 = (2k + 1)^2 = 4k^2 + 4k + 1 = 2(2k^2 + 2k) + 1. "
+        "Since 2k^2 + 2k is an integer, n^2 is odd. Final answer: proved."
+    )
+    return RoutedAnswer("odd_square_proof", prompt.strip(), completion)
+
+
+def _odd_sum_proof(prompt: str) -> RoutedAnswer | None:
+    match = re.fullmatch(
+        r"\s*Prove\s+that\s+1\s*\+\s*3\s*\+\s*5\s*\+\s*\.\.\.\s*\+\s*\(2n\s*-\s*1\)\s*=\s*n\^2\s*\.\s*",
+        prompt,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    completion = (
+        "We prove the formula by induction on n. "
+        "For n = 1, the left side is 1 and the right side is 1^2 = 1. "
+        "Assume 1 + 3 + 5 + ... + (2n - 1) = n^2. "
+        "The next odd term is 2(n + 1) - 1 = 2n + 1. "
+        "Adding it gives n^2 + 2n + 1 = (n + 1)^2. "
+        "Therefore the formula holds for n + 1, so by induction it holds for all positive integers n. "
+        "Final answer: proved by induction."
+    )
+    return RoutedAnswer("odd_sum_proof", prompt.strip(), completion)
+
+
+def _triangular_sum_proof(prompt: str) -> RoutedAnswer | None:
+    patterns = [
+        r"\s*Prove\s+that\s+1\s*\+\s*2\s*\+\s*\.\.\.\s*\+\s*n\s*=\s*n\s*\(\s*n\s*\+\s*1\s*\)\s*/\s*2\s*\.\s*",
+        r"\s*Prove\s+that\s+the\s+sum\s+of\s+the\s+first\s+n\s+positive\s+integers\s+is\s+n\s*\(\s*n\s*\+\s*1\s*\)\s*/\s*2\s*\.\s*",
+    ]
+    if not any(re.fullmatch(pattern, prompt, re.IGNORECASE) for pattern in patterns):
+        return None
+    completion = (
+        "Let S = 1 + 2 + ... + n. "
+        "Write the same sum in reverse: S = n + (n - 1) + ... + 1. "
+        "Adding the two equations gives 2S = (n + 1) + (n + 1) + ... + (n + 1), with n terms. "
+        "Thus 2S = n(n + 1), so S = n(n + 1)/2. Final answer: proved."
+    )
+    return RoutedAnswer("triangular_sum_proof", prompt.strip(), completion)
+
+
 def route(prompt: str) -> RoutedAnswer | None:
-    for solver in (_compute_binary, _solve_linear, _triangular_sum, _odd_sum):
+    for solver in (
+        _compute_binary,
+        _solve_linear,
+        _triangular_sum,
+        _odd_sum,
+        _even_square_proof,
+        _odd_square_proof,
+        _odd_sum_proof,
+        _triangular_sum_proof,
+    ):
         answer = solver(prompt)
         if answer is not None:
             return answer

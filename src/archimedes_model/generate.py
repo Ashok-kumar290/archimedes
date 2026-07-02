@@ -115,7 +115,7 @@ def main() -> int:
         }, ensure_ascii=False, indent=2))
         return 0
     if args.tool_mode == "only":
-        raise ValueError("no deterministic arithmetic route matched this prompt")
+        raise ValueError("no deterministic math route matched this prompt")
 
     torch.manual_seed(args.seed)
     device, amp_dtype = device_and_dtype()
