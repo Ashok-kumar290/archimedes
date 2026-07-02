@@ -28,6 +28,36 @@ tokenizers:               v1 and v2 32k BPE tokenizers
 colab payload:            archimedes_math_colab_payload_v2.tar.gz
 ```
 
+## Current Results
+
+This repo is an experimental training pipeline, not a finished benchmark model.
+The current math expert has learned mathematical formatting and some common
+solution patterns, but it is still undertrained for reliable arithmetic and
+multi-step proof reasoning.
+
+Current measured state:
+
+- corpus snapshot: 163.3M token IDs, 17 train shards, 1 validation shard
+- balanced math mixture target: 25% textbooks/notes, 25% worked problems, 20%
+  formal proofs, 15% research, 10% symbolic math, 5% references
+- trained configs: 44M parameter tiny model and 117M parameter small model;
+  a larger A100 base config is included but not yet fully exercised
+- best small pretraining run observed in Colab: validation perplexity improved
+  to about 4.1-5.8 depending on run/checkpoint and data split
+- SFT works mechanically with prompt-loss masking, but small SFT runs can
+  overfit quickly and should be evaluated with held-out prompts
+
+Evaluation honesty rule: `scripts/generate_math.py` and
+`scripts/eval_math_prompts.py` default to neural-only generation
+(`--tool-mode off`). Tool routing is opt-in for product experiments only and
+must not be used for benchmark claims.
+
+Process charts are in `reports/current_process/`:
+
+- `tokens_by_source.png`
+- `storage_by_stage.png`
+- `token_shard_progress.png`
+
 ## Colab
 
 See [COLAB.md](COLAB.md).
@@ -54,7 +84,8 @@ python3 scripts/build_token_shards.py   --tokenizer /home/seyominaoto/archimedes
 
 ## Generate From A Checkpoint
 
-After training in Colab, generate from a saved checkpoint:
+After training in Colab, generate from a saved checkpoint. By default this uses
+the model only, without deterministic math tools:
 
 ```bash
 python3 scripts/generate_math.py \
@@ -64,7 +95,8 @@ python3 scripts/generate_math.py \
   --prompt-style solution \
   --max-new-tokens 256 \
   --temperature 0.7 \
-  --top-k 50
+  --top-k 50 \
+  --tool-mode off
 ```
 
 ## Supervised Fine-Tuning
@@ -120,3 +152,28 @@ python3 scripts/eval_math_prompts.py \
   --tokenizer /content/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json \
   --out /content/archimedes-data/checkpoints/archimedes_math_small_sft_seed_stop/eval_prompts.jsonl
 ```
+
+To train reasoning traces rather than benchmark-specific routes, build the
+reasoning curriculum and fine-tune from the best available small checkpoint:
+
+```bash
+python3 scripts/build_reasoning_curriculum.py \
+  --out /content/archimedes-data/sft/math_reasoning_curriculum_v1.jsonl \
+  --count 200000
+
+python3 scripts/train_sft_math.py \
+  --init-checkpoint /content/archimedes-data/checkpoints/archimedes_math_small_sft_curriculum_v2_rebuild/step_002000.pt \
+  --tokenizer /content/archimedes-data/tokenizers/archimedes_math_bpe_32768_v2/tokenizer.json \
+  --sft-jsonl /content/archimedes-data/sft/math_reasoning_curriculum_v1.jsonl \
+  --data-root /content/archimedes-data \
+  --run-name archimedes_math_small_reasoning_v1 \
+  --batch-size 16 \
+  --grad-accum 2 \
+  --max-steps 1500 \
+  --lr 5e-6 \
+  --eval-interval 100 \
+  --eval-batches 30 \
+  --save-interval 250 \
+  --compile
+```
+
