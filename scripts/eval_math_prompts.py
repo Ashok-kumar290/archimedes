@@ -73,6 +73,7 @@ def main() -> int:
     parser.add_argument("--top-k", type=int, default=1)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--repetition-penalty", type=float, default=1.0)
+    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="auto")
     args = parser.parse_args()
 
     rows = []
@@ -89,15 +90,29 @@ def main() -> int:
             "--top-k", str(args.top_k),
             "--top-p", str(args.top_p),
             "--repetition-penalty", str(args.repetition_penalty),
+            "--tool-mode", args.tool_mode,
         ]
-        result = subprocess.run(cmd, check=True, text=True, capture_output=True)
-        row = json.loads(result.stdout)
-        row["score"] = score(prompt, row["output"])
-        rows.append(row)
         print("=" * 80)
-        print(row["prompt"])
-        print(row["output"])
-        print("SCORE", json.dumps(row["score"], ensure_ascii=False))
+        try:
+            result = subprocess.run(cmd, check=True, text=True, capture_output=True)
+            row = json.loads(result.stdout)
+            row["score"] = score(prompt, row["output"])
+            rows.append(row)
+            print(row["prompt"])
+            print(row["output"])
+            print("SCORE", json.dumps(row["score"], ensure_ascii=False))
+        except subprocess.CalledProcessError as exc:
+            row = {
+                "prompt": prompt,
+                "error": {
+                    "returncode": exc.returncode,
+                    "stdout": exc.stdout,
+                    "stderr": exc.stderr,
+                },
+            }
+            rows.append(row)
+            print(f"Problem: {prompt}")
+            print("ERROR", json.dumps(row["error"], ensure_ascii=False))
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8") as handle:
