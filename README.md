@@ -101,6 +101,15 @@ Current measured state:
   80%). Held-out eval stays 6/6. Remaining gaps: gcd 72% (did not
   respond to upweighting), mul 80%, worded subtraction 80%.
   v9 (`step_006000.pt`) is the current reference checkpoint.
+- head-to-head against modern small models (2026-07-03, audited scorer,
+  chain-of-thought and generous extraction for the instruct baselines):
+  on the same 299-problem suite Archimedes-117M scores **90.0%** vs
+  Qwen2.5-Math-1.5B-Instruct 82.6% (13x params, math-specialized),
+  Qwen2.5-1.5B-Instruct 78.6%, Qwen2.5-0.5B-Instruct 54.2%,
+  SmolLM2-360M 34.8%, and size-matched SmolLM2-135M 0.7%. Scope caveat:
+  this is in-domain arithmetic, not general math — the honest claim is
+  data-efficiency (163M curated training tokens vs trillions), detailed
+  in `reports/benchmark_comparison.md`.
 
 Evaluation honesty rule: there is no tool or routing path anywhere in
 generation. `scripts/generate_math.py`, `scripts/eval_math_prompts.py`, and
