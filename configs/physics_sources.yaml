@@ -1,0 +1,81 @@
+# Physics expert seed retrieval set (expert #2 of the divided brain).
+# Same provenance rules as the math corpus: explicit sources, licenses
+# stated, expand later via crawl + arXiv ingest exactly as math did.
+# The parser supports the same YAML subset as seed_sources.yaml.
+sources:
+  - name: wikipedia_physics_core
+    domain: physics
+    license: CC-BY-SA-4.0
+    source_type: html
+    urls:
+      - https://en.wikipedia.org/wiki/Classical_mechanics
+      - https://en.wikipedia.org/wiki/Newton%27s_laws_of_motion
+      - https://en.wikipedia.org/wiki/Kinematics
+      - https://en.wikipedia.org/wiki/Projectile_motion
+      - https://en.wikipedia.org/wiki/Force
+      - https://en.wikipedia.org/wiki/Friction
+      - https://en.wikipedia.org/wiki/Work_(physics)
+      - https://en.wikipedia.org/wiki/Kinetic_energy
+      - https://en.wikipedia.org/wiki/Potential_energy
+      - https://en.wikipedia.org/wiki/Conservation_of_energy
+      - https://en.wikipedia.org/wiki/Momentum
+      - https://en.wikipedia.org/wiki/Angular_momentum
+      - https://en.wikipedia.org/wiki/Torque
+      - https://en.wikipedia.org/wiki/Simple_harmonic_motion
+      - https://en.wikipedia.org/wiki/Oscillation
+      - https://en.wikipedia.org/wiki/Gravity
+      - https://en.wikipedia.org/wiki/Pressure
+      - https://en.wikipedia.org/wiki/Density
+      - https://en.wikipedia.org/wiki/Fluid_mechanics
+      - https://en.wikipedia.org/wiki/Thermodynamics
+      - https://en.wikipedia.org/wiki/Heat
+      - https://en.wikipedia.org/wiki/Temperature
+      - https://en.wikipedia.org/wiki/Ideal_gas_law
+      - https://en.wikipedia.org/wiki/Electric_charge
+      - https://en.wikipedia.org/wiki/Electric_field
+      - https://en.wikipedia.org/wiki/Electric_current
+      - https://en.wikipedia.org/wiki/Voltage
+      - https://en.wikipedia.org/wiki/Ohm%27s_law
+      - https://en.wikipedia.org/wiki/Electrical_resistance_and_conductance
+      - https://en.wikipedia.org/wiki/Series_and_parallel_circuits
+      - https://en.wikipedia.org/wiki/Capacitor
+      - https://en.wikipedia.org/wiki/Magnetic_field
+      - https://en.wikipedia.org/wiki/Electromagnetic_induction
+      - https://en.wikipedia.org/wiki/Wave
+      - https://en.wikipedia.org/wiki/Sound
+      - https://en.wikipedia.org/wiki/Doppler_effect
+      - https://en.wikipedia.org/wiki/Optics
+      - https://en.wikipedia.org/wiki/Refraction
+      - https://en.wikipedia.org/wiki/Reflection_(physics)
+      - https://en.wikipedia.org/wiki/Special_relativity
+      - https://en.wikipedia.org/wiki/Quantum_mechanics
+      - https://en.wikipedia.org/wiki/Photon
+      - https://en.wikipedia.org/wiki/Radioactive_decay
+      - https://en.wikipedia.org/wiki/Half-life
+      - https://en.wikipedia.org/wiki/International_System_of_Units
+      - https://en.wikipedia.org/wiki/Dimensional_analysis
+
+  - name: arxiv_physics_education
+    domain: research
+    license: arXiv metadata; paper licenses vary by record
+    source_type: xml
+    urls:
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.class-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.pop-ph&start=0&max_results=100
+
+  - name: gutenberg_physics_classics
+    domain: books
+    license: Public domain
+    source_type: text
+    urls:
+      # Einstein, "Relativity: The Special and General Theory"
+      - https://www.gutenberg.org/cache/epub/5001/pg5001.txt
+      # Faraday, "The Chemical History of a Candle"
+      - https://www.gutenberg.org/cache/epub/14474/pg14474.txt
+
+# Bulk corpus plan (mirrors math): OpenStax University Physics vols 1-3
+# (CC-BY-4.0, downloadable), targeted web crawl for worked problem sets,
+# and arXiv full-text ingest via scripts/ingest_arxiv_papers.py.
+# Target: 100-200M tokens before curation, like math_tokens_v1.
