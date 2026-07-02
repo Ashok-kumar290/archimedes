@@ -46,6 +46,25 @@ def arith_prompt(rng: random.Random, expr: str) -> str:
     return f"{prefix} {expr}."
 
 
+OP_WORDS = {
+    "+": ["plus", "added to"],
+    "-": ["minus", "take away"],
+    "*": ["times", "multiplied by"],
+    "/": ["divided by"],
+}
+
+
+def op_expr(rng: random.Random, a: int, op: str, b: int) -> str:
+    # spoken operator forms alongside symbols, so phrasing changes do not
+    # break operand parsing
+    roll = rng.random()
+    if roll < 0.6:
+        return f"{a} {op} {b}"
+    if op == "+" and roll < 0.7:
+        return f"the sum of {a} and {b}"
+    return f"{a} {rng.choice(OP_WORDS[op])} {b}"
+
+
 def digits_rev(n: int) -> list[int]:
     return [int(c) for c in str(n)][::-1]
 
@@ -625,20 +644,20 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
             completion = digits_trace(n)
         elif kind == "add":
             a, b = rng.randint(10, 9999), rng.randint(10, 9999)
-            prompt = arith_prompt(rng, f"{a} + {b}")
+            prompt = arith_prompt(rng, op_expr(rng, a, "+", b))
             completion = add_trace(a, b)
         elif kind == "sub":
             a, b = rng.randint(10, 9999), rng.randint(10, 9999)
-            prompt = arith_prompt(rng, f"{a} - {b}")
+            prompt = arith_prompt(rng, op_expr(rng, a, "-", b))
             completion = sub_trace(a, b)
         elif kind == "mul":
             a, b = rng.randint(12, 99), rng.randint(2, 99)
-            prompt = arith_prompt(rng, f"{a} * {b}")
+            prompt = arith_prompt(rng, op_expr(rng, a, "*", b))
             completion = mul_trace(a, b)
         elif kind == "div":
             b, q = rng.randint(2, 9), rng.randint(12, 999)
             a = b * q
-            prompt = arith_prompt(rng, f"{a} / {b}")
+            prompt = arith_prompt(rng, op_expr(rng, a, "/", b))
             completion = div_trace(a, b)
         elif kind == "order_ops":
             a, b, c = rng.randint(2, 12), rng.randint(2, 12), rng.randint(2, 12)
