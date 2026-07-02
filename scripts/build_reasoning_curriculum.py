@@ -22,6 +22,9 @@ EVAL_HOLDOUT = {
 
 ARITH_PREFIXES = ["Compute", "Find", "Evaluate", "Calculate", "Work out"]
 PROOF_PREFIXES = ["Prove that", "Show that", "Explain why"]
+PLACES = ["units", "tens", "hundreds", "thousands", "ten-thousands"]
+VARS = ["n", "m", "r", "t"]
+VAR_PAIRS = [("a", "b"), ("m", "n"), ("r", "s"), ("s", "t")]
 
 
 def emit(prompt: str, completion: str) -> str:
@@ -43,51 +46,118 @@ def arith_prompt(rng: random.Random, expr: str) -> str:
     return f"{prefix} {expr}."
 
 
-def add_trace(a: int, b: int) -> str:
+def digits_rev(n: int) -> list[int]:
+    return [int(c) for c in str(n)][::-1]
+
+
+def add_narration(a: int, b: int) -> tuple[str, int]:
     ans = a + b
+    da, db = digits_rev(a), digits_rev(b)
+    parts = []
+    carry = 0
+    for i in range(max(len(da), len(db))):
+        x = da[i] if i < len(da) else 0
+        y = db[i] if i < len(db) else 0
+        s = x + y + carry
+        seg = f"{PLACES[i]}: {x} + {y}" + (f" + {carry} carried" if carry else "") + f" = {s}"
+        carry, write = divmod(s, 10)
+        seg += f", write {write}" + (f", carry {carry}" if carry else "")
+        parts.append(seg)
+    if carry:
+        parts.append(f"write the final carry {carry}")
+    return "; ".join(parts) + f"; the digits give {ans}", ans
+
+
+def sub_narration(a: int, b: int) -> tuple[str, int]:
+    ans = a - b
+    da, db = digits_rev(a), digits_rev(b)
+    parts = []
+    borrow = 0
+    for i in range(len(da)):
+        x = da[i]
+        y = (db[i] if i < len(db) else 0) + borrow
+        if x < y:
+            parts.append(f"{PLACES[i]}: {x} - {y} needs a borrow, so {x + 10} - {y} = {x + 10 - y}")
+            borrow = 1
+        else:
+            parts.append(f"{PLACES[i]}: {x} - {y} = {x - y}")
+            borrow = 0
+    return "; ".join(parts) + f"; the digits give {ans}", ans
+
+
+def mul_narration(a: int, b: int) -> tuple[list[str], int]:
+    ans = a * b
+    partial_texts = []
+    partials = []
+    for i, x in enumerate(digits_rev(a)):
+        for j, y in enumerate(digits_rev(b)):
+            if x == 0 or y == 0:
+                continue
+            p = x * y * 10 ** (i + j)
+            partial_texts.append(f"{x * 10 ** i} * {y * 10 ** j} = {p} since {x} * {y} = {x * y}")
+            partials.append(p)
+    steps = ["place-value products: " + "; ".join(partial_texts)]
+    total = partials[0]
+    for p in partials[1:]:
+        narration, total = add_narration(total, p)
+        steps.append(f"add the partials so far, {total - p} + {p}: {narration}")
+    return steps, ans
+
+
+def longdiv_narration(a: int, b: int) -> tuple[str, int]:
+    q = a // b
+    parts = []
+    r = 0
+    for ch in str(a):
+        cur = r * 10 + int(ch)
+        qd = cur // b
+        r = cur - qd * b
+        parts.append(f"bring down {ch} making {cur}; {b} * {qd} = {qd * b}, remainder {r}")
+    return "; ".join(parts) + f"; the quotient digits give {q}", q
+
+
+def add_trace(a: int, b: int) -> str:
+    narration, ans = add_narration(a, b)
     return (
-        f"Plan: add the two integers and check by subtracting one addend. "
-        f"Step 1: compute {a} + {b} = {ans}. "
-        f"Check: {ans} - {b} = {a}, which recovers the first addend. "
+        f"Plan: add column by column from the units, carrying as needed. "
+        f"Step 1: {narration}. "
         f"Final answer: {ans}."
     )
 
 
 def sub_trace(a: int, b: int) -> str:
-    ans = a - b
+    if a >= b:
+        narration, ans = sub_narration(a, b)
+        return (
+            f"Plan: subtract column by column from the units, borrowing as needed. "
+            f"Step 1: {narration}. "
+            f"Final answer: {ans}."
+        )
+    narration, diff = sub_narration(b, a)
     return (
-        f"Plan: subtract and check by adding back the subtracted number. "
-        f"Step 1: compute {a} - {b} = {ans}. "
-        f"Check: {ans} + {b} = {a}. "
-        f"Final answer: {ans}."
+        f"Plan: since {b} is larger than {a}, compute {b} - {a} and negate the result. "
+        f"Step 1: {narration}. "
+        f"Step 2: therefore {a} - {b} = -{diff}. "
+        f"Final answer: {-diff}."
     )
 
 
 def mul_trace(a: int, b: int) -> str:
-    ans = a * b
-    tens, ones = divmod(abs(b), 10)
-    sign = -1 if b < 0 else 1
-    parts = []
-    if tens:
-        parts.append(f"{a} * {sign * tens * 10} = {a * sign * tens * 10}")
-    if ones:
-        parts.append(f"{a} * {sign * ones} = {a * sign * ones}")
-    if not parts:
-        parts.append(f"{a} * 0 = 0")
+    steps, ans = mul_narration(a, b)
+    numbered = " ".join(f"Step {i + 1}: {s}." for i, s in enumerate(steps))
     return (
-        f"Plan: break the multiplication into place-value parts. "
-        f"Step 1: {'; '.join(parts)}. "
-        f"Step 2: add the partial products to get {ans}. "
+        f"Plan: multiply using place-value partial products, then add them. "
+        f"{numbered} "
         f"Final answer: {ans}."
     )
 
 
 def div_trace(a: int, b: int) -> str:
-    q = a // b
+    narration, q = longdiv_narration(a, b)
     return (
-        f"Plan: divide and check by multiplying back. "
-        f"Step 1: compute {a} / {b} = {q}. "
-        f"Check: {q} * {b} = {a}. "
+        f"Plan: use long division digit by digit. "
+        f"Step 1: {narration}. "
+        f"Check: the remainder is 0, so {b} divides {a} exactly. "
         f"Final answer: {q}."
     )
 
@@ -119,28 +189,46 @@ def order_of_ops_trace(a: int, b: int, c: int, grouped: bool) -> tuple[str, str]
 def power_trace(base: int, exp: int) -> tuple[str, str]:
     expr = f"{base}^{exp}"
     steps = []
-    value = 1
-    for i in range(1, exp + 1):
-        value *= base
-        steps.append(f"{base}^{i} = {value}")
-    completion = (
+    value = base
+    idx = 1
+    for _ in range(exp - 1):
+        if value <= 12:
+            steps.append(f"Step {idx}: {value} * {base} = {value * base}.")
+            value *= base
+        else:
+            mul_steps, value = mul_narration(value, base)
+            joined = " ".join(f"{s};" for s in mul_steps)
+            steps.append(f"Step {idx}: multiply by {base}: {joined} giving {value}.")
+        idx += 1
+    return expr, (
         f"Plan: multiply by {base} one power at a time. "
-        f"Step 1: {'; '.join(steps)}. "
+        f"{' '.join(steps)} "
         f"Final answer: {value}."
     )
-    return expr, completion
 
 
 def percent_trace(p: int, n: int) -> tuple[str, str]:
     ans = p * n // 100
     prompt = f"What is {p}% of {n}?"
-    completion = (
-        f"Plan: convert the percentage to a fraction of 100. "
-        f"Step 1: {p}% of {n} is {p}/100 * {n}. "
-        f"Step 2: compute {p} * {n} = {p * n}, then divide by 100 to get {ans}. "
+    if p == 50:
+        narr, _ = longdiv_narration(n, 2)
+        body = f"Step 1: 50% is one half. Step 2: divide by 2: {narr}."
+    elif p == 25:
+        half = n // 2
+        n1, _ = longdiv_narration(n, 2)
+        n2, _ = longdiv_narration(half, 2)
+        body = f"Step 1: 25% is one quarter. Step 2: half of {n}: {n1}. Step 3: half of {half}: {n2}."
+    elif p == 10:
+        body = f"Step 1: 10% is one tenth; dividing by 10 shifts each digit one place: {n} / 10 = {ans}."
+    else:
+        tenth = n // 10
+        narr, _ = add_narration(tenth, tenth)
+        body = f"Step 1: 10% of {n} is {tenth}. Step 2: 20% is twice that; add {tenth} + {tenth}: {narr}."
+    return prompt, (
+        f"Plan: convert the percentage to a simple fraction. "
+        f"{body} "
         f"Final answer: {ans}."
     )
-    return prompt, completion
 
 
 def gcd_trace(a: int, b: int) -> tuple[str, str]:
@@ -167,26 +255,38 @@ def mean_trace(nums: list[int]) -> tuple[str, str]:
     ans = total // len(nums)
     listing = ", ".join(str(n) for n in nums)
     prompt = f"Find the mean of {listing}."
-    completion = (
-        f"Plan: add the numbers, then divide by how many there are. "
-        f"Step 1: {' + '.join(str(n) for n in nums)} = {total}. "
-        f"Step 2: divide by {len(nums)}: {total} / {len(nums)} = {ans}. "
+    steps = []
+    running = nums[0]
+    idx = 1
+    for n in nums[1:]:
+        narration, running = add_narration(running, n)
+        steps.append(f"Step {idx}: add {running - n} + {n}: {narration}.")
+        idx += 1
+    div_narr, _ = longdiv_narration(total, len(nums))
+    steps.append(f"Step {idx}: divide by {len(nums)}: {div_narr}.")
+    return prompt, (
+        f"Plan: add the numbers one at a time, then divide by how many there are. "
+        f"{' '.join(steps)} "
         f"Final answer: {ans}."
     )
-    return prompt, completion
 
 
 def linear_trace(a: int, b: int, x: int, sign: int) -> tuple[str, str]:
     c = a * x + sign * b
     op = "+" if sign > 0 else "-"
     move = c - sign * b
+    if sign > 0:
+        narration, _ = sub_narration(c, b)
+        move_step = f"subtract {b} from both sides: {c} - {b}: {narration}"
+    else:
+        narration, _ = add_narration(c, b)
+        move_step = f"add {b} to both sides: {c} + {b}: {narration}"
     prompt = f"Solve for x: {a}x {op} {b} = {c}."
     completion = (
         f"Plan: isolate x using inverse operations. "
         f"Step 1: start with {a}x {op} {b} = {c}. "
-        f"Step 2: move the constant term to get {a}x = {move}. "
-        f"Step 3: divide by {a}: x = {x}. "
-        f"Check: {a} * {x} {op} {b} = {c}. "
+        f"Step 2: {move_step}, so {a}x = {move}. "
+        f"Step 3: divide by {a}: since {a} * {x} = {move}, x = {x}. "
         f"Final answer: x = {x}."
     )
     return prompt, completion
@@ -203,15 +303,14 @@ def two_step_linear_trace(a: int, c: int, b: int, x: int) -> tuple[str, str]:
         f"Plan: collect the x terms on one side and constants on the other. "
         f"Step 1: start with {lhs} = {rhs}. "
         f"Step 2: subtract {c}x from both sides: {coef}x {signed_term(b)} = {d}. "
-        f"Step 3: move the constant: {coef}x = {const}. "
-        f"Step 4: divide by {coef}: x = {x}. "
-        f"Check: {a} * {x} + {b} = {a * x + b} and {c} * {x} + {d} = {c * x + d}. "
+        f"Step 3: subtract {b} from both sides: {coef}x = {const}. "
+        f"Step 4: divide by {coef}: since {coef} * {x} = {const}, x = {x}. "
         f"Final answer: x = {x}."
     )
     return prompt, completion
 
 
-def fraction_add_trace(a: int, b: int, c: int, d: int, subtract: bool) -> tuple[str, str]:
+def fraction_trace(a: int, b: int, c: int, d: int, subtract: bool) -> tuple[str, str]:
     rhs = Fraction(c, d) * (-1 if subtract else 1)
     ans = Fraction(a, b) + rhs
     lcm = b * d // gcd(b, d)
@@ -219,13 +318,21 @@ def fraction_add_trace(a: int, b: int, c: int, d: int, subtract: bool) -> tuple[
     right = c * (lcm // d)
     op = "-" if subtract else "+"
     raw_num = left - right if subtract else left + right
-    verb = "subtract" if subtract else "add"
+    if subtract:
+        if left >= right:
+            narration, _ = sub_narration(left, right)
+        else:
+            narration, diff = sub_narration(right, left)
+            narration += f"; since {right} is larger, the result is -{diff}"
+    else:
+        narration, _ = add_narration(left, right)
     prompt = f"Compute {a}/{b} {op} {c}/{d}."
     completion = (
         f"Plan: use a common denominator. "
         f"Step 1: a common denominator for {b} and {d} is {lcm}. "
-        f"Step 2: rewrite {a}/{b} as {left}/{lcm} and {c}/{d} as {right}/{lcm}. "
-        f"Step 3: {verb} numerators: ({left} {op} {right})/{lcm} = {raw_num}/{lcm}. "
+        f"Step 2: rewrite {a}/{b} as {left}/{lcm} since {a} * {lcm // b} = {left}, "
+        f"and {c}/{d} as {right}/{lcm} since {c} * {lcm // d} = {right}. "
+        f"Step 3: combine numerators, {left} {op} {right}: {narration}; this gives {raw_num}/{lcm}. "
         f"Step 4: simplify to {fmt_fraction(ans)}. "
         f"Final answer: {fmt_fraction(ans)}."
     )
@@ -233,24 +340,60 @@ def fraction_add_trace(a: int, b: int, c: int, d: int, subtract: bool) -> tuple[
 
 
 def odd_sum_trace(n: int) -> str:
-    ans = n * n
+    steps, ans = mul_narration(n, n)
+    numbered = " ".join(f"Step {i + 2}: {s}." for i, s in enumerate(steps))
     return (
         f"Plan: use the identity that the first n odd positive integers sum to n^2. "
-        f"Step 1: here n = {n}. "
-        f"Step 2: compute {n}^2 = {ans}. "
-        f"Check: the answer is a square, as expected for an odd-number sum. "
+        f"Step 1: here n = {n}, so compute {n} * {n}. "
+        f"{numbered} "
         f"Final answer: {ans}."
     )
 
 
 def triangular_trace(n: int) -> str:
-    ans = n * (n + 1) // 2
+    if n % 2 == 0:
+        f1, f2 = n // 2, n + 1
+        halving = f"half of {n} is {f1}, so the sum is {f1} * {n + 1}"
+    else:
+        f1, f2 = n, (n + 1) // 2
+        halving = f"half of {n + 1} is {f2}, so the sum is {n} * {f2}"
+    steps, ans = mul_narration(f1, f2)
+    numbered = " ".join(f"Step {i + 3}: {s}." for i, s in enumerate(steps))
     return (
         f"Plan: use the formula 1 + 2 + ... + n = n(n + 1)/2. "
         f"Step 1: substitute n = {n}. "
-        f"Step 2: compute {n} * {n + 1} / 2 = {ans}. "
+        f"Step 2: {halving}. "
+        f"{numbered} "
         f"Final answer: {ans}."
     )
+
+
+def fact_pool() -> list[str]:
+    rows = []
+    for x in range(2, 10):
+        for y in range(2, 10):
+            for prefix in ARITH_PREFIXES:
+                rows.append(emit(
+                    f"{prefix} {x} + {y}.",
+                    f"Plan: recall the basic addition fact. Step 1: {x} + {y} = {x + y}. Final answer: {x + y}.",
+                ))
+                rows.append(emit(
+                    f"{prefix} {x} * {y}.",
+                    f"Plan: recall the multiplication table. Step 1: {x} * {y} = {x * y}. Final answer: {x * y}.",
+                ))
+                rows.append(emit(
+                    f"{prefix} {x * y} / {y}.",
+                    f"Plan: use the multiplication table in reverse. Step 1: {y} * {x} = {x * y}, so {x * y} / {y} = {x}. Final answer: {x}.",
+                ))
+    for a in range(11, 19):
+        for y in range(2, 10):
+            if 1 <= a - y <= 9:
+                for prefix in ARITH_PREFIXES:
+                    rows.append(emit(
+                        f"{prefix} {a} - {y}.",
+                        f"Plan: recall the basic subtraction fact. Step 1: {a} - {y} = {a - y}. Final answer: {a - y}.",
+                    ))
+    return [r for r in rows if json.loads(r)["prompt"] not in EVAL_HOLDOUT]
 
 
 def even_square_proof(prefix: str, var: str) -> tuple[str, str]:
@@ -354,10 +497,6 @@ def consecutive_product_proof(prefix: str, var: str) -> tuple[str, str]:
     return prompt, completion
 
 
-VARS = ["n", "m", "r", "t"]
-VAR_PAIRS = [("a", "b"), ("m", "n"), ("r", "s"), ("s", "t")]
-
-
 def enumerate_proofs() -> list[str]:
     single_var = [even_square_proof, odd_square_proof, odd_sum_proof, triangular_proof, consecutive_product_proof]
     pair_var = [even_plus_even_proof, odd_plus_odd_proof, even_times_any_proof]
@@ -376,24 +515,54 @@ def enumerate_proofs() -> list[str]:
     return rows
 
 
-def build(count: int, seed: int, proof_fraction: float) -> list[str]:
+def sum_formula_pools() -> tuple[list[str], list[str]]:
+    odd_rows, tri_rows = [], []
+    for n in range(2, 100):
+        completion = odd_sum_trace(n)
+        for prompt in (
+            f"Find the sum of the first {n} odd positive integers.",
+            f"What is 1 + 3 + 5 + ... through the first {n} odd positive integers?",
+            f"Compute the sum of the first {n} odd positive integers.",
+        ):
+            if prompt not in EVAL_HOLDOUT:
+                odd_rows.append(emit(prompt, completion))
+        completion = triangular_trace(n)
+        for prompt in (
+            f"Find 1 + 2 + ... + {n}.",
+            f"Find the sum of the first {n} positive integers.",
+            f"Compute 1 + 2 + ... + {n}.",
+        ):
+            if prompt not in EVAL_HOLDOUT:
+                tri_rows.append(emit(prompt, completion))
+    return odd_rows, tri_rows
+
+
+def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -> list[str]:
     rng = random.Random(seed)
     rows: list[str] = []
 
-    # Proofs have a small unique space, so they are tiled to a fixed fraction
-    # of the dataset; this is mixture weighting, stated here, not hidden
-    # repetition of benchmark prompts.
-    proofs = enumerate_proofs()
-    proof_target = int(count * proof_fraction)
-    rng.shuffle(proofs)
-    for idx in range(proof_target):
-        rows.append(proofs[idx % len(proofs)])
+    # Proofs, single-digit facts, and the fully enumerated sum-formula
+    # families have small unique spaces, so they are tiled to fixed fractions
+    # of the dataset; this is stated mixture weighting, not hidden repetition
+    # of benchmark prompts.
+    odd_pool, tri_pool = sum_formula_pools()
+    pools = (
+        (enumerate_proofs(), proof_fraction),
+        (fact_pool(), facts_fraction),
+        (odd_pool, 0.015),
+        (tri_pool, 0.015),
+    )
+    for pool, fraction in pools:
+        target = int(count * fraction)
+        rng.shuffle(pool)
+        for idx in range(target):
+            rows.append(pool[idx % len(pool)])
 
-    numeric_target = count - proof_target
+    numeric_target = count - len(rows)
     numeric_rows: list[str] = []
     families = [
         "add", "sub", "mul", "div", "order_ops", "power", "percent", "gcd", "mean",
-        "linear", "two_step_linear", "fraction", "odd_sum", "triangular",
+        "linear", "two_step_linear", "fraction",
     ]
 
     seen: set[str] = set()
@@ -411,68 +580,59 @@ def build(count: int, seed: int, proof_fraction: float) -> list[str]:
             prompt = arith_prompt(rng, f"{a} - {b}")
             completion = sub_trace(a, b)
         elif kind == "mul":
-            a, b = rng.randint(2, 999), rng.randint(2, 99)
+            a, b = rng.randint(12, 99), rng.randint(2, 99)
             prompt = arith_prompt(rng, f"{a} * {b}")
             completion = mul_trace(a, b)
         elif kind == "div":
-            b, q = rng.randint(2, 99), rng.randint(2, 999)
+            b, q = rng.randint(2, 9), rng.randint(12, 999)
             a = b * q
             prompt = arith_prompt(rng, f"{a} / {b}")
             completion = div_trace(a, b)
         elif kind == "order_ops":
-            a, b, c = rng.randint(2, 99), rng.randint(2, 30), rng.randint(2, 30)
+            a, b, c = rng.randint(2, 12), rng.randint(2, 12), rng.randint(2, 12)
             expr, completion = order_of_ops_trace(a, b, c, rng.random() < 0.5)
             prompt = arith_prompt(rng, expr)
         elif kind == "power":
-            base = rng.choice([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-            exp = rng.randint(2, 10 if base <= 3 else 5)
+            base = rng.randint(2, 12)
+            max_exp = {2: 8, 3: 5, 4: 4, 5: 4, 6: 4, 7: 3, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3}[base]
+            exp = rng.randint(2, max_exp)
             expr, completion = power_trace(base, exp)
             prompt = arith_prompt(rng, expr)
         elif kind == "percent":
-            p = rng.choice([5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 80])
-            n = 20 * rng.randint(1, 400)
+            p = rng.choice([10, 20, 25, 50])
+            n = 20 * rng.randint(1, 200)
             prompt, completion = percent_trace(p, n)
         elif kind == "gcd":
-            a, b = rng.randint(12, 999), rng.randint(12, 999)
+            a, b = rng.randint(12, 144), rng.randint(12, 144)
             expr, completion = gcd_trace(a, b)
             prompt = f"{rng.choice(ARITH_PREFIXES)} {expr}."
         elif kind == "mean":
-            k = rng.randint(3, 5)
-            m = rng.randint(5, 200)
-            offsets = [rng.randint(-9, 9) for _ in range(k - 1)]
+            k = rng.randint(3, 4)
+            m = rng.randint(5, 50)
+            offsets = [rng.randint(-4, 4) for _ in range(k - 1)]
             nums = [m + off for off in offsets] + [m - sum(offsets)]
+            if min(nums) < 1:
+                continue
             rng.shuffle(nums)
             prompt, completion = mean_trace(nums)
         elif kind == "linear":
-            a = rng.randint(2, 17)
-            b = rng.randint(1, 80)
-            x = rng.randint(-40, 60)
-            prompt, completion = linear_trace(a, b, x, rng.choice([1, -1]))
+            a = rng.randint(2, 9)
+            b = rng.randint(1, 20)
+            x = rng.randint(2, 12)
+            sign = rng.choice([1, -1])
+            if sign < 0 and a * x - b <= 0:
+                sign = 1
+            prompt, completion = linear_trace(a, b, x, sign)
         elif kind == "two_step_linear":
-            a, c = rng.sample(range(2, 13), 2)
-            b = rng.randint(1, 60)
-            x = rng.randint(-30, 30)
+            a = rng.randint(3, 9)
+            c = rng.randint(2, a - 1)
+            b = rng.randint(1, 20)
+            x = rng.randint(2, 12)
             prompt, completion = two_step_linear_trace(a, c, b, x)
-        elif kind == "fraction":
-            a, b = rng.randint(1, 25), rng.randint(2, 25)
-            c, d = rng.randint(1, 25), rng.randint(2, 25)
-            prompt, completion = fraction_add_trace(a, b, c, d, rng.random() < 0.4)
-        elif kind == "odd_sum":
-            n = rng.randint(2, 300)
-            prompt = rng.choice([
-                f"Find the sum of the first {n} odd positive integers.",
-                f"What is 1 + 3 + 5 + ... through the first {n} odd positive integers?",
-                f"Compute the sum of the first {n} odd positive integers.",
-            ])
-            completion = odd_sum_trace(n)
         else:
-            n = rng.randint(2, 400)
-            prompt = rng.choice([
-                f"Find 1 + 2 + ... + {n}.",
-                f"Find the sum of the first {n} positive integers.",
-                f"Compute 1 + 2 + ... + {n}.",
-            ])
-            completion = triangular_trace(n)
+            a, b = rng.randint(1, 11), rng.randint(2, 12)
+            c, d = rng.randint(1, 11), rng.randint(2, 12)
+            prompt, completion = fraction_trace(a, b, c, d, rng.random() < 0.4)
 
         if prompt in EVAL_HOLDOUT:
             continue
@@ -488,17 +648,18 @@ def build(count: int, seed: int, proof_fraction: float) -> list[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build varied SFT examples that teach step-by-step math reasoning, not benchmark routing.")
+    parser = argparse.ArgumentParser(description="Build SFT examples that teach digit-level arithmetic and step-by-step math reasoning.")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--count", type=int, default=200000)
     parser.add_argument("--seed", type=int, default=20260702)
     parser.add_argument("--proof-fraction", type=float, default=0.1, help="fraction of the dataset tiled from the unique proof pool")
+    parser.add_argument("--facts-fraction", type=float, default=0.12, help="fraction of the dataset tiled from the single-digit fact pool")
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    rows = build(args.count, args.seed, args.proof_fraction)
-    args.out.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    rows = build(args.count, args.seed, args.proof_fraction, args.facts_fraction)
     if len(rows) < args.count:
         print(f"warning: unique example space exhausted at {len(rows)} of {args.count} requested", flush=True)
+    args.out.write_text("\n".join(rows) + "\n", encoding="utf-8")
     print(json.dumps({"out": str(args.out), "examples": len(rows)}, indent=2))
     return 0
 

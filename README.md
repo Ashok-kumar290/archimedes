@@ -46,6 +46,14 @@ Current measured state:
   to about 4.1-5.8 depending on run/checkpoint and data split
 - SFT works mechanically with prompt-loss masking, but small SFT runs can
   overfit quickly and should be evaluated with held-out prompts
+- held-out eval of the small model after reasoning SFT (run
+  `archimedes_math_small_reasoning_v3`, 2026-07-02): output format, procedure
+  selection, and both template proofs are correct on all six held-out prompts;
+  all four numeric final answers are wrong. The model learned what to compute
+  but not digit-level arithmetic, because training traces stated multi-digit
+  results in a single step. The current curriculum builder decomposes every
+  operation to digit granularity (column addition/subtraction, place-value
+  partial products, long division) to address exactly this.
 
 Evaluation honesty rule: `scripts/generate_math.py` and
 `scripts/eval_math_prompts.py` default to neural-only generation
