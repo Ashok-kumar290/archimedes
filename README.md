@@ -62,6 +62,12 @@ Current measured state:
   curriculum now adds explicit digit-reading steps and a digit-listing drill
   family; a digit-split tokenizer is the planned fix at the next pretraining
   run.
+- with digit-reading drills (run `archimedes_math_small_reasoning_v5`,
+  2026-07-02): still 3 of 4 numeric, but the failure narrowed to a single
+  misread digit (hundreds of 247 read as 3); the model now reads operand
+  digits aloud before computing and every downstream carry is correct. The
+  drill pool now enumerates all 2-3 digit numbers exhaustively instead of
+  sampling them.
 
 Evaluation honesty rule: `scripts/generate_math.py` and
 `scripts/eval_math_prompts.py` default to neural-only generation

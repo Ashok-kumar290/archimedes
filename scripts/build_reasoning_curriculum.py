@@ -539,6 +539,22 @@ def enumerate_proofs() -> list[str]:
     return rows
 
 
+def digit_drill_pool() -> list[str]:
+    # 2- and 3-digit numbers are enumerated exhaustively: the token-to-digits
+    # mapping is memorization, and random sampling leaves gaps
+    rows = []
+    for n in range(10, 1000):
+        completion = digits_trace(n)
+        for prompt in (
+            f"List the digits of {n} from the units place.",
+            f"What are the digits of {n}, starting from the units?",
+            f"Read off the digits of {n} from the units upward.",
+        ):
+            if prompt not in EVAL_HOLDOUT:
+                rows.append(emit(prompt, completion))
+    return rows
+
+
 def sum_formula_pools() -> tuple[list[str], list[str]]:
     odd_rows, tri_rows = [], []
     for n in range(2, 100):
@@ -573,6 +589,7 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
     pools = (
         (enumerate_proofs(), proof_fraction),
         (fact_pool(), facts_fraction),
+        (digit_drill_pool(), 0.05),
         (odd_pool, 0.015),
         (tri_pool, 0.015),
     )
@@ -599,7 +616,7 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
         attempts += 1
         kind = rng.choice(families)
         if kind == "digits":
-            n = rng.randint(10, 9999)
+            n = rng.randint(1000, 9999)
             prompt = rng.choice([
                 f"List the digits of {n} from the units place.",
                 f"What are the digits of {n}, starting from the units?",
