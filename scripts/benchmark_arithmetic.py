@@ -80,14 +80,29 @@ def norm(text: str) -> str:
     return re.sub(r"[\s,]+", "", text).strip(".").lower()
 
 
+def as_value(text: str) -> Fraction | None:
+    # parse "x = 6", "7/4", "1.75", "\( -3 \)", "Answer: 55" into an exact value
+    cleaned = clean_answer(text)
+    cleaned = re.sub(r"[*]", "", cleaned)
+    if "=" in cleaned:
+        cleaned = cleaned.split("=")[-1]
+    cleaned = norm(cleaned)
+    try:
+        return Fraction(cleaned)
+    except (ValueError, ZeroDivisionError):
+        return None
+
+
 def is_hit(expected: str, observed: str | None) -> bool:
     if observed is None:
         return False
     exp, obs = norm(expected), norm(observed)
     if obs == exp:
         return True
-    # generous to baselines: accept a bare "6" for expected "x = 6"
-    return "=" in exp and obs == exp.split("=")[-1]
+    # generous to baselines: accept any mathematically equal form —
+    # a bare "6" for "x = 6", "50/24" or "1.75" for a fraction, LaTeX noise
+    exp_val, obs_val = as_value(expected), as_value(observed)
+    return exp_val is not None and obs_val is not None and exp_val == obs_val
 
 
 def extract_final(output: str) -> str | None:
@@ -138,15 +153,42 @@ FEW_SHOT_PAIRS = (
 FEW_SHOT = "".join(f"Problem: {p}\nAnswer: {a}\n\n" for p, a in FEW_SHOT_PAIRS)
 
 
+def clean_answer(answer: str) -> str:
+    # peel repeated "Answer:" prefixes ("Answer: Answer: 55") and LaTeX
+    # wrappers ("\( x = 8 \)", "$\frac{7}{4}$") off an extracted answer
+    answer = re.sub(r"^\s*(?:answer\s*(?:is|:)[\s*]*)+", "", answer, flags=re.IGNORECASE)
+    answer = re.sub(r"\\frac\{(-?\d+)\}\{(-?\d+)\}", r"\1/\2", answer)
+    answer = re.sub(r"\\d?frac(-?\d)(-?\d)", r"\1/\2", answer)
+    answer = re.sub(r"[\\()\[\]$]", "", answer)
+    return answer.strip().strip("*").strip().rstrip(".")
+
+
+def extract_boxed(completion: str) -> str | None:
+    # regex can't handle nested braces in \boxed{\frac{7}{4}}; scan instead
+    idx = completion.rfind("\\boxed{")
+    if idx == -1:
+        return None
+    start = idx + len("\\boxed{")
+    depth = 0
+    for i in range(start, len(completion)):
+        if completion[i] == "{":
+            depth += 1
+        elif completion[i] == "}":
+            if depth == 0:
+                return completion[start:i]
+            depth -= 1
+    return completion[start:]
+
+
 def extract_chat_answer(completion: str) -> str | None:
     # generous extraction for chain-of-thought outputs: prefer \boxed{},
     # then an explicit "Answer:" line, then the last number/fraction anywhere
-    boxed = re.findall(r"\\boxed\{([^}]*)\}", completion)
-    if boxed:
-        return boxed[-1].strip()
+    boxed = extract_boxed(completion)
+    if boxed is not None:
+        return clean_answer(boxed)
     marked = re.findall(r"answer\s*(?:is|:)\s*([^\n]+)", completion, flags=re.IGNORECASE)
     if marked:
-        return marked[-1].strip().strip("*").strip().rstrip(".")
+        return clean_answer(marked[-1])
     numbers = re.findall(r"-?\d[\d,]*(?:/\d+)?(?:\.\d+)?", completion)
     if numbers:
         return numbers[-1]
@@ -169,7 +211,9 @@ class HFBackend:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.chat = chat
         # chat models reason step by step before answering; give them room
-        self.max_new_tokens = max(max_new_tokens, 512) if chat else max_new_tokens
+        # (verbose math models were getting truncated before the answer at 512)
+        self.max_new_tokens = max(max_new_tokens, 768) if chat else max_new_tokens
+        self.last_raw: str | None = None
         self.name = f"hf:{model_name}" + (":chat" if chat else "")
 
     def answer(self, prompt: str) -> str | None:
@@ -192,6 +236,7 @@ class HFBackend:
                 pad_token_id=self.tokenizer.pad_token_id,
             )
         completion = self.tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        self.last_raw = completion
         if self.chat:
             return extract_chat_answer(completion)
         return completion.split("\n")[0].strip() or None
@@ -233,7 +278,9 @@ def main() -> int:
         observed = backend.answer(p["prompt"])
         hit = is_hit(p["expected"], observed)
         per_family.setdefault(p["family"], []).append(hit)
-        results.append({**p, "observed": observed, "hit": hit})
+        # keep the raw completion so scoring disputes can be audited later
+        results.append({**p, "observed": observed, "hit": hit,
+                        "raw": getattr(backend, "last_raw", None)})
         if (i + 1) % 25 == 0:
             done = sum(1 for r in results if r["hit"])
             print(f"[{i + 1}/{len(problems)}] running accuracy {done / (i + 1):.1%}", flush=True)
