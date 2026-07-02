@@ -35,7 +35,9 @@ def compact_math(text: str) -> str:
 def numeric_hit(expected: str, observed: str) -> bool:
     if not re.fullmatch(r"-?\d+", expected):
         return False
-    return expected in re.findall(r"-?\d+", observed)
+    # BPE decode can split one number across tokens ("6 36" for 636), so
+    # collapse whitespace before extracting numbers
+    return expected in re.findall(r"-?\d+", re.sub(r"\s+", "", observed))
 
 
 def final_answer(output: str) -> str | None:

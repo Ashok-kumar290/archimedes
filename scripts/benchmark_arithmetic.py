@@ -73,7 +73,9 @@ def norm(text: str) -> str:
 def extract_final(output: str) -> str | None:
     matches = re.findall(r"final\s+answer\s*:\s*([^\n]+)", output, flags=re.IGNORECASE)
     if matches:
-        return matches[-1].strip()
+        # the end-of-solution marker decodes as visible text on the same
+        # line; cut the answer at its first character
+        return matches[-1].split("<")[0].strip()
     return None
 
 
