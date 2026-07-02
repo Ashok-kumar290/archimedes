@@ -263,6 +263,20 @@ def percent_trace(p: int, n: int) -> tuple[str, str]:
         body = f"Step 1: 25% is one quarter. Step 2: half of {n}: {n1}. Step 3: half of {half}: {n2}."
     elif p == 10:
         body = f"Step 1: 10% is one tenth; dividing by 10 shifts each digit one place: {n} / 10 = {ans}."
+    elif p == 5:
+        tenth = n // 10
+        narr, _ = longdiv_narration(tenth, 2)
+        body = f"Step 1: 5% is half of 10%. Step 2: 10% of {n} is {tenth}. Step 3: half of {tenth}: {narr}."
+    elif p == 75:
+        half = n // 2
+        quarter = half // 2
+        n1, _ = longdiv_narration(n, 2)
+        n2, _ = longdiv_narration(half, 2)
+        n3, _ = add_narration(half, quarter)
+        body = (
+            f"Step 1: 75% is three quarters. Step 2: half of {n}: {n1}. "
+            f"Step 3: half of {half}: {n2}. Step 4: add {half} + {quarter}: {n3}."
+        )
     else:
         tenth = n // 10
         narr, _ = add_narration(tenth, tenth)
@@ -574,6 +588,19 @@ def digit_drill_pool() -> list[str]:
     return rows
 
 
+def percent_pool() -> list[str]:
+    # the whole percent space is small (6 percentages x 200 amounts), so a
+    # random loop with dedup caps it near 800 rows; enumerate it exhaustively
+    # and tile it like the other small families instead
+    rows = []
+    for p in (5, 10, 20, 25, 50, 75):
+        for k in range(1, 201):
+            prompt, completion = percent_trace(p, 20 * k)
+            if prompt not in EVAL_HOLDOUT:
+                rows.append(emit(prompt, completion))
+    return rows
+
+
 def sum_formula_pools() -> tuple[list[str], list[str]]:
     odd_rows, tri_rows = [], []
     for n in range(2, 100):
@@ -611,6 +638,7 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
         (digit_drill_pool(), 0.05),
         (odd_pool, 0.015),
         (tri_pool, 0.015),
+        (percent_pool(), 0.015),
     )
     for pool, fraction in pools:
         target = int(count * fraction)
@@ -621,11 +649,17 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
     numeric_target = count - len(rows)
     numeric_rows: list[str] = []
     # digit reading and column add/sub are weighted up: digit extraction from
-    # multi-digit BPE tokens is the observed bottleneck
+    # multi-digit BPE tokens is the observed bottleneck. gcd and fraction are
+    # also weighted up: their v8 benchmark scores (68/64) tracked low
+    # per-family exposure, since gcd (~18k pairs) and fraction (~29k combos)
+    # each drew only ~8.7k samples at single weight. percent moved to an
+    # exhaustive tiled pool above (its unique space is too small for this
+    # dedup-limited loop)
     families = [
         "digits", "digits", "add", "add", "sub", "sub",
-        "mul", "div", "order_ops", "power", "percent", "gcd", "mean",
-        "linear", "two_step_linear", "fraction",
+        "mul", "div", "order_ops", "power", "mean",
+        "linear", "two_step_linear",
+        "gcd", "gcd", "fraction", "fraction",
     ]
 
     seen: set[str] = set()
@@ -669,10 +703,6 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
             exp = rng.randint(2, max_exp)
             expr, completion = power_trace(base, exp)
             prompt = arith_prompt(rng, expr)
-        elif kind == "percent":
-            p = rng.choice([10, 20, 25, 50])
-            n = 20 * rng.randint(1, 200)
-            prompt, completion = percent_trace(p, n)
         elif kind == "gcd":
             a, b = rng.randint(12, 144), rng.randint(12, 144)
             expr, completion = gcd_trace(a, b)
