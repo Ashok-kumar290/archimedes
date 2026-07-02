@@ -75,6 +75,16 @@ Current measured state:
   answer is produced by step-by-step neural computation with no tool
   assistance. Full table: `reports/benchmark_comparison.md`. Known gap:
   percent problems (28%), the smallest training family.
+- spoken-operator robustness run (`archimedes_math_small_reasoning_v7`,
+  2026-07-02, curriculum with 40% worded arithmetic prompts like
+  "8351 plus 4767"): held-out eval stays 6/6, and the previously failing
+  worded prompt now reads both operands correctly with every column step
+  right — but the final digit assembly slips one digit (13138 instead of
+  13118), and the symbolic benchmark dipped to 79.1% (gcd 72%, percent 20%,
+  triangular 84%). Cause: at 4000 steps the run consumes only ~128k of the
+  200k examples, so spreading prompts over more surface forms thins
+  per-family coverage. v6 remains the reference checkpoint for the
+  benchmark table; the next run trains longer on the same data.
 
 Evaluation honesty rule: there is no tool or routing path anywhere in
 generation. `scripts/generate_math.py`, `scripts/eval_math_prompts.py`, and
