@@ -20,7 +20,13 @@ Notes:
 
 - Archimedes solves each problem by explicit digit-level computation
   (column addition with carries, place-value partial products, long
-  division) generated entirely by the neural net; no tool routing.
+  division) generated entirely by the neural net; no tool or routing code
+  exists in the generation path.
+- Train/test overlap, stated honestly: add and sub draw from a ~10^8
+  problem space of which training saw under 0.05% — accuracy there is true
+  held-out generalization. mul/div/linear/sum-formula spaces were largely
+  covered during training, so those scores measure learned execution of
+  practiced procedures.
 - The weak family, percent, had the smallest training pool (~800 unique
   examples) — a data-coverage gap, not an algorithmic one.
 - Baselines score near zero on multi-digit arithmetic, consistent with

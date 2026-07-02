@@ -7,7 +7,6 @@ from pathlib import Path
 import torch
 from tokenizers import Tokenizer
 
-from archimedes_model.arithmetic_router import route
 from archimedes_model.model import ArchimedesMathModel, ModelConfig
 
 
@@ -100,22 +99,12 @@ def main() -> int:
     parser.add_argument("--raw-output", action="store_true")
     parser.add_argument("--stop-text", default=DEFAULT_STOP_TEXT)
     parser.add_argument("--seed", type=int, default=1234)
-    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="off")
     args = parser.parse_args()
 
-    routed = None if args.tool_mode == "off" else route(args.prompt)
+    # There is deliberately no tool/routing path here: every output comes
+    # from the checkpoint's forward passes, so results are always the
+    # model's own computation.
     prompt = build_prompt(args.prompt, args.prompt_style)
-    if routed is not None:
-        print(json.dumps({
-            "checkpoint": str(args.checkpoint),
-            "device": "tool",
-            "prompt": prompt,
-            "output": routed.output,
-            "tool": routed.kind,
-        }, ensure_ascii=False, indent=2))
-        return 0
-    if args.tool_mode == "only":
-        raise ValueError("no deterministic math route matched this prompt")
 
     torch.manual_seed(args.seed)
     device, amp_dtype = device_and_dtype()

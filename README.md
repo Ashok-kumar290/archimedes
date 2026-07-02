@@ -76,10 +76,19 @@ Current measured state:
   assistance. Full table: `reports/benchmark_comparison.md`. Known gap:
   percent problems (28%), the smallest training family.
 
-Evaluation honesty rule: `scripts/generate_math.py` and
-`scripts/eval_math_prompts.py` default to neural-only generation
-(`--tool-mode off`). Tool routing is opt-in for product experiments only and
-must not be used for benchmark claims.
+Evaluation honesty rule: there is no tool or routing path anywhere in
+generation. `scripts/generate_math.py`, `scripts/eval_math_prompts.py`, and
+`scripts/benchmark_arithmetic.py` produce every answer from the checkpoint's
+forward passes alone; the historical arithmetic router and the legacy SFT
+builders that trained on eval prompts have been deleted from the codebase.
+
+Generalization vs. recall, stated plainly: the add and sub benchmark
+families draw from a ~10^8 problem space of which training saw under 0.05%,
+so accuracy there (84% each) is true held-out generalization of the learned
+digit algorithms. Smaller families (mul, div, linear, sum formulas) have
+problem spaces that training largely covered, so their scores measure
+learned execution of procedures the model has practiced, not novel
+generalization.
 
 Process charts are in `reports/current_process/`:
 

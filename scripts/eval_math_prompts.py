@@ -76,7 +76,6 @@ def main() -> int:
     parser.add_argument("--top-k", type=int, default=1)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--repetition-penalty", type=float, default=1.0)
-    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="off")
     args = parser.parse_args()
 
     rows = []
@@ -93,7 +92,6 @@ def main() -> int:
             "--top-k", str(args.top_k),
             "--top-p", str(args.top_p),
             "--repetition-penalty", str(args.repetition_penalty),
-            "--tool-mode", args.tool_mode,
         ]
         print("=" * 80)
         try:
