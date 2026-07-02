@@ -51,9 +51,17 @@ Current measured state:
   selection, and both template proofs are correct on all six held-out prompts;
   all four numeric final answers are wrong. The model learned what to compute
   but not digit-level arithmetic, because training traces stated multi-digit
-  results in a single step. The current curriculum builder decomposes every
-  operation to digit granularity (column addition/subtraction, place-value
-  partial products, long division) to address exactly this.
+  results in a single step.
+- after retraining on the digit-decomposed curriculum (run
+  `archimedes_math_small_reasoning_v4`, 2026-07-02): 3 of 4 numeric answers
+  correct on held-out prompts (linear equation, 17^2 via four partial products
+  and chained column additions, 25*26/2), both proofs still correct. The one
+  failure (247 + 389) shows correct single-digit facts and carry mechanics but
+  wrong digit extraction from the operands: the BPE tokenizer chunks numbers
+  into multi-digit tokens, so digit identity must be learned per token. The
+  curriculum now adds explicit digit-reading steps and a digit-listing drill
+  family; a digit-split tokenizer is the planned fix at the next pretraining
+  run.
 
 Evaluation honesty rule: `scripts/generate_math.py` and
 `scripts/eval_math_prompts.py` default to neural-only generation

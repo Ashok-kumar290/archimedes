@@ -116,28 +116,52 @@ def longdiv_narration(a: int, b: int) -> tuple[str, int]:
     return "; ".join(parts) + f"; the quotient digits give {q}", q
 
 
+def digit_listing(n: int) -> str:
+    ds = digits_rev(n)
+    return ", ".join(f"{d} ({PLACES[i]})" for i, d in enumerate(ds))
+
+
+def digits_trace(n: int) -> str:
+    ds = digits_rev(n)
+    reading = "; ".join(f"the {PLACES[i]} digit of {n} is {d}" for i, d in enumerate(ds))
+    listing = ", ".join(str(d) for d in ds)
+    return (
+        f"Plan: read the number place by place starting at the units. "
+        f"Step 1: {reading}. "
+        f"Final answer: {listing}."
+    )
+
+
 def add_trace(a: int, b: int) -> str:
     narration, ans = add_narration(a, b)
     return (
-        f"Plan: add column by column from the units, carrying as needed. "
-        f"Step 1: {narration}. "
+        f"Plan: read off the digits of each number, then add column by column with carries. "
+        f"Step 1: the digits of {a} from the units are {digit_listing(a)}; "
+        f"the digits of {b} from the units are {digit_listing(b)}. "
+        f"Step 2: {narration}. "
         f"Final answer: {ans}."
     )
 
 
 def sub_trace(a: int, b: int) -> str:
+    listing = (
+        f"the digits of {a} from the units are {digit_listing(a)}; "
+        f"the digits of {b} from the units are {digit_listing(b)}"
+    )
     if a >= b:
         narration, ans = sub_narration(a, b)
         return (
-            f"Plan: subtract column by column from the units, borrowing as needed. "
-            f"Step 1: {narration}. "
+            f"Plan: read off the digits of each number, then subtract column by column with borrows. "
+            f"Step 1: {listing}. "
+            f"Step 2: {narration}. "
             f"Final answer: {ans}."
         )
     narration, diff = sub_narration(b, a)
     return (
         f"Plan: since {b} is larger than {a}, compute {b} - {a} and negate the result. "
-        f"Step 1: {narration}. "
-        f"Step 2: therefore {a} - {b} = -{diff}. "
+        f"Step 1: {listing}. "
+        f"Step 2: {narration}. "
+        f"Step 3: therefore {a} - {b} = -{diff}. "
         f"Final answer: {-diff}."
     )
 
@@ -560,8 +584,11 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
 
     numeric_target = count - len(rows)
     numeric_rows: list[str] = []
+    # digit reading and column add/sub are weighted up: digit extraction from
+    # multi-digit BPE tokens is the observed bottleneck
     families = [
-        "add", "sub", "mul", "div", "order_ops", "power", "percent", "gcd", "mean",
+        "digits", "digits", "add", "add", "sub", "sub",
+        "mul", "div", "order_ops", "power", "percent", "gcd", "mean",
         "linear", "two_step_linear", "fraction",
     ]
 
@@ -571,7 +598,15 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
     while len(numeric_rows) < numeric_target and attempts < max_attempts:
         attempts += 1
         kind = rng.choice(families)
-        if kind == "add":
+        if kind == "digits":
+            n = rng.randint(10, 9999)
+            prompt = rng.choice([
+                f"List the digits of {n} from the units place.",
+                f"What are the digits of {n}, starting from the units?",
+                f"Read off the digits of {n} from the units upward.",
+            ])
+            completion = digits_trace(n)
+        elif kind == "add":
             a, b = rng.randint(10, 9999), rng.randint(10, 9999)
             prompt = arith_prompt(rng, f"{a} + {b}")
             completion = add_trace(a, b)
