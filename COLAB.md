@@ -19,15 +19,21 @@ Upload this local file to Colab or Google Drive:
 /home/seyominaoto/archimedes-data/colab/archimedes_math_colab_payload_v2.tar.gz
 ```
 
-Then extract in Colab:
+Then extract in Colab. Extract into a staging directory, never into
+`/content/archimedes`: the payload archive carries snapshots of some repo
+files, and extracting it into the repo silently overwrites the cloned code
+with stale versions.
 
 ```bash
-mkdir -p /content/archimedes-data
-tar -xzf /content/archimedes_math_colab_payload_v2.tar.gz -C /content/archimedes
-mv /content/archimedes/shards /content/archimedes-data/
-mv /content/archimedes/tokenizers /content/archimedes-data/
-mv /content/archimedes/metadata /content/archimedes-data/ || true
+mkdir -p /content/archimedes-data /content/payload
+tar -xzf /content/archimedes_math_colab_payload_v2.tar.gz -C /content/payload
+mv /content/payload/shards /content/archimedes-data/
+mv /content/payload/tokenizers /content/archimedes-data/
+mv /content/payload/metadata /content/archimedes-data/ || true
 ```
+
+If a payload was ever extracted into the repo by mistake, restore the code
+with `cd /content/archimedes && git checkout -- .` before running anything.
 
 ## 3. Train Tiny On V2 Balanced Data
 
