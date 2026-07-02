@@ -68,6 +68,13 @@ Current measured state:
   digits aloud before computing and every downstream carry is correct. The
   drill pool now enumerates all 2-3 digit numbers exhaustively instead of
   sampling them.
+- with exhaustive digit drills (run `archimedes_math_small_reasoning_v6`,
+  2026-07-02): all six held-out eval prompts correct, and 82% overall on a
+  249-problem held-out benchmark across 10 task families, versus 1% for
+  GPT-2 (124M) and 1% for Pythia-160M on the identical problems. Every
+  answer is produced by step-by-step neural computation with no tool
+  assistance. Full table: `reports/benchmark_comparison.md`. Known gap:
+  percent problems (28%), the smallest training family.
 
 Evaluation honesty rule: `scripts/generate_math.py` and
 `scripts/eval_math_prompts.py` default to neural-only generation
