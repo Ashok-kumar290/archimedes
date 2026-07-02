@@ -177,6 +177,7 @@ class ArchimedesMathModel(nn.Module):
         top_k: int = 50,
         top_p: float = 1.0,
         repetition_penalty: float = 1.0,
+        eos_token_id: int | None = None,
     ) -> torch.Tensor:
         self.eval()
         for _ in range(max_new_tokens):
@@ -194,6 +195,8 @@ class ArchimedesMathModel(nn.Module):
             if temperature <= 0.0 or top_k == 1:
                 next_id = torch.argmax(logits, dim=-1, keepdim=True)
                 input_ids = torch.cat([input_ids, next_id], dim=1)
+                if eos_token_id is not None and bool((next_id == eos_token_id).all()):
+                    break
                 continue
             logits = logits / max(temperature, 1e-6)
             if top_k > 0:
@@ -212,6 +215,8 @@ class ArchimedesMathModel(nn.Module):
             probs = F.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1)
             input_ids = torch.cat([input_ids, next_id], dim=1)
+            if eos_token_id is not None and bool((next_id == eos_token_id).all()):
+                break
         return input_ids
 
     def num_parameters(self) -> int:

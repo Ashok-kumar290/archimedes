@@ -123,6 +123,11 @@ def main() -> int:
     model = load_model(args.checkpoint, args.config, device)
 
     input_ids = tokenizer.encode(prompt).ids
+    eos_id = tokenizer.token_to_id("<|eos|>")
+    if eos_id is not None and input_ids and input_ids[-1] == eos_id:
+        # encode() appends <|eos|>; feeding it marks the document as finished
+        # and the model responds by starting an unrelated new document
+        input_ids = input_ids[:-1]
     if not input_ids:
         raise ValueError("prompt produced no tokens")
     if len(input_ids) > model.cfg.context_length:
@@ -137,16 +142,20 @@ def main() -> int:
             top_k=args.top_k,
             top_p=args.top_p,
             repetition_penalty=args.repetition_penalty,
+            eos_token_id=eos_id,
         )
-    text = tokenizer.decode(y[0].detach().cpu().tolist())
-    text = trim_at_stop(text, args.stop_text)
-    if not args.raw_output:
-        text = clean_decoded_text(text)
+    decoded = tokenizer.decode(y[0].detach().cpu().tolist())
+    trimmed = trim_at_stop(decoded, args.stop_text)
+    if args.raw_output:
+        text, untrimmed = trimmed, decoded
+    else:
+        text, untrimmed = clean_decoded_text(trimmed), clean_decoded_text(decoded)
     print(json.dumps({
         "checkpoint": str(args.checkpoint),
         "device": str(device),
         "prompt": prompt,
         "output": text,
+        "output_untrimmed": untrimmed,
     }, ensure_ascii=False, indent=2))
     return 0
 

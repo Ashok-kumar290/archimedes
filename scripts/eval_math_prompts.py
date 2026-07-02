@@ -48,7 +48,7 @@ def final_answer(output: str) -> str | None:
     return None
 
 
-def score(prompt: str, output: str) -> dict[str, object]:
+def score(prompt: str, output: str, untrimmed: str = "") -> dict[str, object]:
     expected = EXPECTED_FINALS.get(prompt)
     observed = final_answer(output)
     if expected is None:
@@ -59,7 +59,8 @@ def score(prompt: str, output: str) -> dict[str, object]:
         expected_hit = numeric_hit(expected, observed)
     else:
         expected_hit = compact_math(expected) in compact_math(observed)
-    artifacts = [marker for marker in ARTIFACTS if marker in output]
+    # detect artifacts on the untrimmed text; trimming would hide them
+    artifacts = [marker for marker in ARTIFACTS if marker in (untrimmed or output)]
     return {"expected": expected, "observed_final": observed, "expected_hit": expected_hit, "artifacts": artifacts}
 
 
@@ -96,7 +97,7 @@ def main() -> int:
         try:
             result = subprocess.run(cmd, check=True, text=True, capture_output=True)
             row = json.loads(result.stdout)
-            row["score"] = score(prompt, row["output"])
+            row["score"] = score(prompt, row["output"], row.get("output_untrimmed", ""))
             rows.append(row)
             print(row["prompt"])
             print(row["output"])

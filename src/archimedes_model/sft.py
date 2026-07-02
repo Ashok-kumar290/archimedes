@@ -30,6 +30,7 @@ class SFTDataset:
         self.context_length = context_length
         self.rng = random.Random(seed)
         self.examples: list[tuple[list[int], list[int]]] = []
+        eos_id = tokenizer.token_to_id("<|eos|>")
         with path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 if not line.strip():
@@ -40,6 +41,10 @@ class SFTDataset:
                 formatted_prompt = f"Problem: {prompt}\nSolution:"
                 full_text = f"{formatted_prompt} {completion} {end_marker}\n"
                 prompt_ids = tokenizer.encode(formatted_prompt).ids
+                if eos_id is not None and prompt_ids and prompt_ids[-1] == eos_id:
+                    # encode() appends <|eos|>; counting it would extend the
+                    # prompt-loss mask over the first completion token
+                    prompt_ids = prompt_ids[:-1]
                 full_ids = tokenizer.encode(full_text).ids
                 if len(full_ids) < 2:
                     continue
