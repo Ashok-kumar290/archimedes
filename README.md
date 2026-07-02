@@ -83,8 +83,16 @@ Current measured state:
   13118), and the symbolic benchmark dipped to 79.1% (gcd 72%, percent 20%,
   triangular 84%). Cause: at 4000 steps the run consumes only ~128k of the
   200k examples, so spreading prompts over more surface forms thins
-  per-family coverage. v6 remains the reference checkpoint for the
-  benchmark table; the next run trains longer on the same data.
+  per-family coverage. v6 remained the reference until the longer run
+  below.
+- longer training on the same spoken-operator curriculum (run
+  `archimedes_math_small_reasoning_v8`, 2026-07-02, 6000 steps ≈ one full
+  pass over the 200k examples): all six held-out prompts correct, the
+  worded prompt "Compute 8351 plus 4767." answers 13118 exactly, and the
+  symbolic benchmark recovers to 83.1% (207/249) — above the v6 reference
+  — while keeping the phrasing robustness. percent doubled to 44%; the
+  dips moved to fraction (64%) and gcd (68%), the next data targets.
+  v8 (`step_006000.pt`) is the current reference checkpoint.
 
 Evaluation honesty rule: there is no tool or routing path anywhere in
 generation. `scripts/generate_math.py`, `scripts/eval_math_prompts.py`, and
@@ -94,8 +102,8 @@ builders that trained on eval prompts have been deleted from the codebase.
 
 Generalization vs. recall, stated plainly: the add and sub benchmark
 families draw from a ~10^8 problem space of which training saw under 0.05%,
-so accuracy there (84% each) is true held-out generalization of the learned
-digit algorithms. Smaller families (mul, div, linear, sum formulas) have
+so accuracy there (96% and 84% at v8) is true held-out generalization of the
+learned digit algorithms. Smaller families (mul, div, linear, sum formulas) have
 problem spaces that training largely covered, so their scores measure
 learned execution of procedures the model has practiced, not novel
 generalization.
