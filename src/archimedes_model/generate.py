@@ -100,7 +100,7 @@ def main() -> int:
     parser.add_argument("--raw-output", action="store_true")
     parser.add_argument("--stop-text", default=DEFAULT_STOP_TEXT)
     parser.add_argument("--seed", type=int, default=1234)
-    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="auto")
+    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="off")
     args = parser.parse_args()
 
     routed = None if args.tool_mode == "off" else route(args.prompt)

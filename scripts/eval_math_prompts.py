@@ -73,7 +73,7 @@ def main() -> int:
     parser.add_argument("--top-k", type=int, default=1)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--repetition-penalty", type=float, default=1.0)
-    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="auto")
+    parser.add_argument("--tool-mode", choices=("auto", "off", "only"), default="off")
     args = parser.parse_args()
 
     rows = []
