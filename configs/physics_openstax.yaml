@@ -1,0 +1,14 @@
+# OpenStax physics textbooks (CC-BY 4.0) — high-quality pedagogical corpus
+# with worked examples, the best training text for the physics lobe.
+# Full-book PDFs; retrieve.py extracts text via pdftotext. Use a long
+# --timeout (files are 50-260 MB). URLs verified via the OpenStax CMS API.
+sources:
+  - name: openstax_physics_textbooks
+    domain: physics
+    license: CC-BY-4.0
+    source_type: pdf
+    urls:
+      - https://assets.openstax.org/oscms-prodcms/media/documents/university-physics-volume-1_-_WEB.pdf
+      - https://assets.openstax.org/oscms-prodcms/media/documents/university-physics-volume-2_-_WEB.pdf
+      - https://assets.openstax.org/oscms-prodcms/media/documents/university-physics-volume-3_-_WEB.pdf
+      - https://assets.openstax.org/oscms-prodcms/media/documents/college-physics-2e_-_WEB.pdf
