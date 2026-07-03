@@ -71,7 +71,9 @@ sources:
     source_type: text
     urls:
       # Einstein, "Relativity: The Special and General Theory"
-      - https://www.gutenberg.org/cache/epub/5001/pg5001.txt
+      - https://www.gutenberg.org/cache/epub/30155/pg30155.txt
+      # Einstein, "Sidelights on Relativity"
+      - https://www.gutenberg.org/cache/epub/7333/pg7333.txt
       # Faraday, "The Chemical History of a Candle"
       - https://www.gutenberg.org/cache/epub/14474/pg14474.txt
 
