@@ -31,6 +31,88 @@ def emit(prompt: str, completion: str) -> str:
     return json.dumps({"prompt": prompt, "completion": completion}, ensure_ascii=False)
 
 
+# --- calculus: polynomial differentiation and integration via the power rule ---
+
+def fmt_monomial(coeff: Fraction, power: int) -> str:
+    if power == 0:
+        return str(coeff.numerator) if coeff.denominator == 1 else f"{coeff.numerator}/{coeff.denominator}"
+    var = "x" if power == 1 else f"x^{power}"
+    if coeff == 1:
+        return var
+    if coeff == -1:
+        return f"-{var}"
+    cs = str(coeff.numerator) if coeff.denominator == 1 else f"{coeff.numerator}/{coeff.denominator}"
+    return f"{cs}{var}"
+
+
+def fmt_polynomial(terms: list[tuple[Fraction, int]]) -> str:
+    parts: list[str] = []
+    for coeff, power in terms:
+        if coeff == 0:
+            continue
+        body = fmt_monomial(abs(coeff), power)
+        parts.append((("-" if coeff < 0 else "") + body) if not parts
+                     else ((" - " if coeff < 0 else " + ") + body))
+    return "".join(parts) if parts else "0"
+
+
+def derivative_of(terms: list[tuple[Fraction, int]]) -> list[tuple[Fraction, int]]:
+    out = [(coeff * power, power - 1) for coeff, power in terms if power != 0]
+    return out or [(Fraction(0), 0)]
+
+
+def integral_of(terms: list[tuple[Fraction, int]]) -> list[tuple[Fraction, int]]:
+    return [(coeff / (power + 1), power + 1) for coeff, power in terms]
+
+
+def derivative_trace(terms: list[tuple[Fraction, int]]) -> tuple[str, str]:
+    prompt = f"Find the derivative of {fmt_polynomial(terms)}."
+    steps = []
+    for coeff, power in terms:
+        if power == 0:
+            steps.append(f"the derivative of the constant {fmt_monomial(coeff, 0)} is 0")
+        else:
+            steps.append(
+                f"d/dx({fmt_monomial(coeff, power)}) = {fmt_monomial(coeff, 0)} * {power} * "
+                f"x^{power - 1} = {fmt_monomial(coeff * power, power - 1)}"
+            )
+    result = fmt_polynomial(derivative_of(terms))
+    completion = (
+        "Plan: differentiate each term with the power rule d/dx(a x^n) = a n x^(n-1). "
+        + " ".join(f"Step {i + 1}: {s}." for i, s in enumerate(steps))
+        + f" Final answer: {result}."
+    )
+    return prompt, completion
+
+
+def integral_trace(terms: list[tuple[Fraction, int]]) -> tuple[str, str]:
+    prompt = f"Compute the integral of {fmt_polynomial(terms)} with respect to x."
+    steps = []
+    for coeff, power in terms:
+        new_coeff, new_power = coeff / (power + 1), power + 1
+        steps.append(
+            f"integral of {fmt_monomial(coeff, power)} is {fmt_monomial(coeff, 0)}/{power + 1} "
+            f"x^{power + 1} = {fmt_monomial(new_coeff, new_power)}"
+        )
+    result = fmt_polynomial(integral_of(terms))
+    completion = (
+        "Plan: integrate each term with the power rule integral of a x^n dx = a/(n+1) x^(n+1). "
+        + " ".join(f"Step {i + 1}: {s}." for i, s in enumerate(steps))
+        + f" Final answer: {result} + C."
+    )
+    return prompt, completion
+
+
+def random_polynomial(rng: random.Random) -> list[tuple[Fraction, int]]:
+    n_terms = rng.randint(1, 3)
+    powers = rng.sample(range(1, 7), n_terms)  # distinct positive powers, already simplified
+    terms = [(Fraction(rng.choice([c for c in range(-9, 10) if c != 0])), p) for p in powers]
+    if rng.random() < 0.3:  # sometimes append a constant term
+        terms.append((Fraction(rng.randint(-9, 9)), 0))
+    terms.sort(key=lambda t: t[1], reverse=True)  # conventional high-to-low order
+    return terms
+
+
 def fmt_fraction(value: Fraction) -> str:
     return str(value.numerator) if value.denominator == 1 else f"{value.numerator}/{value.denominator}"
 
@@ -660,6 +742,7 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
         "mul", "div", "order_ops", "power", "mean",
         "linear", "two_step_linear",
         "gcd", "gcd", "fraction", "fraction",
+        "derivative", "derivative", "integral", "integral",
     ]
 
     seen: set[str] = set()
@@ -730,6 +813,10 @@ def build(count: int, seed: int, proof_fraction: float, facts_fraction: float) -
             b = rng.randint(1, 20)
             x = rng.randint(2, 12)
             prompt, completion = two_step_linear_trace(a, c, b, x)
+        elif kind == "derivative":
+            prompt, completion = derivative_trace(random_polynomial(rng))
+        elif kind == "integral":
+            prompt, completion = integral_trace(random_polynomial(rng))
         else:
             a, b = rng.randint(1, 11), rng.randint(2, 12)
             c, d = rng.randint(1, 11), rng.randint(2, 12)
