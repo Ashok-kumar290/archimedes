@@ -59,11 +59,12 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
 def observed_number(ans: str | None) -> int | None:
     if ans is None:
         return None
-    # answer text looks like "36 N" / "150 J" / "V = 30"; collapse spaces
-    # (digit-split can space out digits) then take the first integer, ignoring
-    # any unit or label. Robust to both our model and open-model phrasings.
-    m = re.search(r"-?\d[\d,]*", ans.replace(" ", ""))
-    return int(m.group().replace(",", "")) if m else None
+    # take the LAST integer, not the first: verbose baselines write the working
+    # before the answer ("26 + 99 = 125"), so the final answer is last. Grabbing
+    # the first number would score an operand and unfairly penalize them. Our own
+    # model emits a single clean number, so last == first for it.
+    nums = re.findall(r"-?\d[\d,]*", ans.replace(" ", ""))
+    return int(nums[-1].replace(",", "")) if nums else None
 
 
 # physics-domain few-shot so baselines learn the answer FORMAT (not the physics);
@@ -104,11 +105,14 @@ def main() -> int:
     results = []
     per_family: dict[str, list[bool]] = {}
     for i, p in enumerate(problems):
-        raw = backend.answer(p["prompt"])  # returns the extracted final-answer text
-        obs = observed_number(raw)
+        answer_text = backend.answer(p["prompt"])  # extracted final-answer text
+        obs = observed_number(answer_text)
         hit = obs is not None and obs == int(p["expected"])
         per_family.setdefault(p["family"], []).append(hit)
-        results.append({**p, "observed": obs, "hit": hit})
+        # keep the raw completion (HF backends expose last_raw) so any scoring
+        # dispute can be audited without re-running the model
+        results.append({**p, "observed": obs, "answer_text": answer_text,
+                        "hit": hit, "raw": getattr(backend, "last_raw", None)})
         if (i + 1) % 25 == 0:
             done = sum(1 for r in results if r["hit"])
             print(f"[{i + 1}/{len(problems)}] running accuracy {done / (i + 1):.1%}", flush=True)
