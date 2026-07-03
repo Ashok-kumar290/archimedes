@@ -88,14 +88,16 @@ def f_weight(rng):
 
 def f_potential(rng):
     m, h = rng.randint(2, 80), rng.randint(2, 80)
-    narr1, mg = mul_step(m, G)
-    narr2, PE = mul_step(mg, h)
+    # compute PE = m*g*h as (m*h)*10: one clean multiply, then append a zero
+    # for the *g=10 step (far more tractable than two large multiplications)
+    narr, mh = mul_step(m, h)
+    PE = mh * G
     prompt = f"A {m} kg object is lifted to a height of {h} m. Find its potential energy. Use g = {G} m/s^2."
     completion = (
-        f"Plan: gravitational potential energy is PE = m * g * h. "
-        f"Step 1: substitute m = {m} kg, g = {G} m/s^2, h = {h} m. "
-        f"Step 2: m * g = {m} * {G}: {narr1}. "
-        f"Step 3: multiply by h, {mg} * {h}: {narr2}. Final answer: {PE} J."
+        f"Plan: gravitational potential energy is PE = m * g * h; with g = {G} this is (m * h) * {G}. "
+        f"Step 1: substitute m = {m} kg, h = {h} m, so first find m * h = {m} * {h}. "
+        f"Step 2: {narr}. "
+        f"Step 3: multiply by g = {G}, which appends a zero: {mh} * {G} = {PE}. Final answer: {PE} J."
     )
     return prompt, completion, PE
 
@@ -139,7 +141,9 @@ def f_ohm_v(rng):
 
 
 def f_ohm_i(rng):
-    I, R = rng.randint(2, 30), rng.randint(2, 12)
+    # single-digit divisor R keeps the long division tractable (matches the
+    # math div family that scored ~90%; two-digit divisors were the weak spot)
+    I, R = rng.randint(2, 40), rng.randint(2, 9)
     V = I * R
     narr, ans = div_step(V, R)
     prompt = f"A voltage of {V} V is applied across a {R} ohm resistor. Find the current."
@@ -152,7 +156,7 @@ def f_ohm_i(rng):
 
 
 def f_density(rng):
-    rho, V = rng.randint(2, 60), rng.randint(2, 12)
+    rho, V = rng.randint(2, 80), rng.randint(2, 9)  # single-digit divisor V
     m = rho * V
     narr, ans = div_step(m, V)
     prompt = f"An object has mass {m} kg and volume {V} m^3. Find its density."
@@ -165,7 +169,7 @@ def f_density(rng):
 
 
 def f_power(rng):
-    P, t = rng.randint(2, 80), rng.randint(2, 12)
+    P, t = rng.randint(2, 99), rng.randint(2, 9)  # single-digit divisor t
     W = P * t
     narr, ans = div_step(W, t)
     prompt = f"An engine does {W} J of work in {t} s. Find its power output."

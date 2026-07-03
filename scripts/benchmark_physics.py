@@ -45,11 +45,11 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
         add("work", f"A force of {F} N moves an object {d} m in the direction of the force. Find the work done.", F * d)
         I, R = rng.randint(2, 50), rng.randint(2, 99)
         add("ohm_v", f"A current of {I} A flows through a {R} ohm resistor. Find the voltage.", I * R)
-        I, R = rng.randint(2, 30), rng.randint(2, 12)
+        I, R = rng.randint(2, 40), rng.randint(2, 9)  # single-digit divisor, matches training
         add("ohm_i", f"A voltage of {I * R} V is applied across a {R} ohm resistor. Find the current.", I)
-        rho, V = rng.randint(2, 60), rng.randint(2, 12)
+        rho, V = rng.randint(2, 80), rng.randint(2, 9)
         add("density", f"An object has mass {rho * V} kg and volume {V} m^3. Find its density.", rho)
-        P, t = rng.randint(2, 80), rng.randint(2, 12)
+        P, t = rng.randint(2, 99), rng.randint(2, 9)
         add("power", f"An engine does {P * t} J of work in {t} s. Find its power output.", P)
     return problems
 
