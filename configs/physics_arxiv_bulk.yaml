@@ -1,0 +1,56 @@
+# Bulk arXiv physics metadata pull (expert #2 volume driver).
+# These are metadata/abstract queries; run retrieve_seed on this file to
+# populate raw/physics_arxiv_metadata_bulk/, then ingest_arxiv_papers with
+# --metadata-source physics_arxiv_metadata_bulk to download full-text PDFs.
+# ~4500 papers -> after pdftotext, the bulk of the ~150M physics corpus.
+sources:
+  - name: physics_arxiv_metadata_bulk
+    domain: research
+    license: arXiv metadata; paper licenses vary by record
+    source_type: xml
+    urls:
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.ed-ph&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.class-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.class-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.class-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.class-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.class-ph&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.pop-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.pop-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.pop-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.pop-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.pop-ph&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.gen-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.gen-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.gen-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.gen-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.gen-ph&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.optics&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.optics&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.optics&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.optics&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.optics&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.flu-dyn&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.flu-dyn&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.flu-dyn&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.flu-dyn&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.flu-dyn&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.app-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.app-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.app-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.app-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.app-ph&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:astro-ph.EP&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:astro-ph.EP&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:astro-ph.EP&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:astro-ph.EP&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:astro-ph.EP&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:quant-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:quant-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:quant-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:quant-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:quant-ph&start=400&max_results=100

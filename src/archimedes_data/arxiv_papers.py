@@ -177,14 +177,16 @@ def ingest_paper(
     retry_sleep: float,
     extract_image_files: bool,
     force: bool,
+    source_name: str = "arxiv_math_papers",
+    domain: str = "mathematics_research_full_paper",
 ) -> str:
     doc_id = doc_id_for_url(paper.pdf_url)
     if not force and existing_ok(conn, doc_id):
         return f"skip {paper.arxiv_id} {paper.pdf_url}"
 
-    raw_dir = data_root / "raw" / "arxiv_math_papers"
-    cleaned_dir = data_root / "cleaned" / "arxiv_math_papers"
-    image_dir = data_root / "parsed" / "arxiv_math_paper_images" / paper.arxiv_id.replace("/", "_")
+    raw_dir = data_root / "raw" / source_name
+    cleaned_dir = data_root / "cleaned" / source_name
+    image_dir = data_root / "parsed" / f"{source_name}_images" / paper.arxiv_id.replace("/", "_")
     raw_dir.mkdir(parents=True, exist_ok=True)
     cleaned_dir.mkdir(parents=True, exist_ok=True)
 
@@ -219,9 +221,9 @@ def ingest_paper(
         """,
         (
             doc_id,
-            "arxiv_math_papers",
+            source_name,
             paper.pdf_url,
-            "mathematics_research_full_paper",
+            domain,
             "arXiv paper license varies by record; verify before redistribution/training release",
             "pdf",
             str(pdf_path),
@@ -257,16 +259,17 @@ def ingest_paper(
     return f"err  {paper.arxiv_id:<16} {paper.pdf_url} :: {error}"
 
 
-def collect_papers(data_root: Path) -> list[Paper]:
-    metadata_dir = data_root / "raw" / "math_arxiv_metadata_core"
+def collect_papers(data_root: Path, metadata_sources: list[str]) -> list[Paper]:
     seen: set[str] = set()
     papers: list[Paper] = []
-    for xml_path in sorted(metadata_dir.glob("*.xml")):
-        for paper in parse_papers(xml_path):
-            if paper.arxiv_id in seen:
-                continue
-            seen.add(paper.arxiv_id)
-            papers.append(paper)
+    for source in metadata_sources:
+        metadata_dir = data_root / "raw" / source
+        for xml_path in sorted(metadata_dir.glob("*.xml")):
+            for paper in parse_papers(xml_path):
+                if paper.arxiv_id in seen:
+                    continue
+                seen.add(paper.arxiv_id)
+                papers.append(paper)
     return papers
 
 
@@ -281,10 +284,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--retry-sleep", type=float, default=60.0)
     parser.add_argument("--extract-images", action="store_true")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--metadata-source", action="append", default=None,
+                        help="raw/ subdir(s) holding arXiv query XML to draw the paper pool "
+                             "from; repeatable. Default: math_arxiv_metadata_core")
+    parser.add_argument("--source-name", default="arxiv_math_papers",
+                        help="source_name to catalogue downloaded papers under")
+    parser.add_argument("--domain", default="mathematics_research_full_paper")
     args = parser.parse_args(argv)
 
     conn = init_db(args.data_root / "metadata" / "documents.sqlite")
-    papers = collect_papers(args.data_root)
+    metadata_sources = args.metadata_source or ["math_arxiv_metadata_core"]
+    papers = collect_papers(args.data_root, metadata_sources)
     selected = papers[args.offset : args.offset + args.limit]
     print(f"available_papers={len(papers)} selected={len(selected)} offset={args.offset}", flush=True)
 
@@ -299,6 +309,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.retry_sleep,
                 args.extract_images,
                 args.force,
+                args.source_name,
+                args.domain,
             ),
             flush=True,
         )
