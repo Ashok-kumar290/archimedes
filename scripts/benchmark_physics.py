@@ -15,10 +15,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-# reuse the neural-only backend from the math benchmark; there is no tool path —
-# every answer is a forward pass. answer() already returns the "Final answer:"
-# text, so we only need to pull the number (and drop the unit) from it.
-from benchmark_arithmetic import ArchimedesBackend
+# reuse the backends from the math benchmark: ArchimedesBackend is neural-only
+# (every answer is a forward pass, no tools); HFBackend runs open HuggingFace
+# models for the data-efficiency comparison. answer() returns the extracted
+# answer text, so we only pull the number (dropping the unit) from it.
+import benchmark_arithmetic as ba
+from benchmark_arithmetic import ArchimedesBackend, HFBackend
 
 G = 10
 
@@ -57,16 +59,31 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
 def observed_number(ans: str | None) -> int | None:
     if ans is None:
         return None
-    # answer text looks like "36 N" / "150 J"; collapse spaces (digit-split
-    # can space out digits) then take the leading integer, ignoring the unit
-    m = re.match(r"-?\d[\d,]*", ans.replace(" ", ""))
+    # answer text looks like "36 N" / "150 J" / "V = 30"; collapse spaces
+    # (digit-split can space out digits) then take the first integer, ignoring
+    # any unit or label. Robust to both our model and open-model phrasings.
+    m = re.search(r"-?\d[\d,]*", ans.replace(" ", ""))
     return int(m.group().replace(",", "")) if m else None
+
+
+# physics-domain few-shot so baselines learn the answer FORMAT (not the physics);
+# a capable model does not need worked physics examples to apply F = m*a.
+PHYSICS_FEW_SHOT = (
+    ("A 4 kg object accelerates at 3 m/s^2. Find the net force.", "12"),
+    ("A current of 2 A flows through a 5 ohm resistor. Find the voltage.", "10"),
+    ("An object of mass 6 kg moves at 5 m/s. Find its momentum.", "30"),
+    ("An engine does 40 J of work in 8 s. Find its power output.", "5"),
+)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--tokenizer", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, default=None)
+    parser.add_argument("--tokenizer", type=Path, default=None)
+    parser.add_argument("--hf-model", default=None,
+                        help="benchmark an open HuggingFace model instead of an Archimedes checkpoint")
+    parser.add_argument("--hf-chat", action="store_true",
+                        help="use the model's chat template (for instruct models)")
     parser.add_argument("--per-family", type=int, default=25)
     parser.add_argument("--seed", type=int, default=99991)  # disjoint from training seed 2718
     parser.add_argument("--max-new-tokens", type=int, default=400)
@@ -74,7 +91,15 @@ def main() -> int:
     args = parser.parse_args()
 
     problems = gen_problems(args.per_family, args.seed)
-    backend = ArchimedesBackend(args.checkpoint, args.tokenizer, args.max_new_tokens)
+    if args.hf_model is not None:
+        # give the HF baseline physics-domain few-shot for the answer format
+        ba.FEW_SHOT_PAIRS = PHYSICS_FEW_SHOT
+        ba.FEW_SHOT = "".join(f"Problem: {p}\nAnswer: {a}\n\n" for p, a in PHYSICS_FEW_SHOT)
+        backend = HFBackend(args.hf_model, chat=args.hf_chat)
+    else:
+        if args.checkpoint is None or args.tokenizer is None:
+            raise SystemExit("pass either --hf-model, or both --checkpoint and --tokenizer")
+        backend = ArchimedesBackend(args.checkpoint, args.tokenizer, args.max_new_tokens)
 
     results = []
     per_family: dict[str, list[bool]] = {}
