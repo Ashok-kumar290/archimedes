@@ -19,6 +19,7 @@ PHYSICS_SOURCES = (
     "wikipedia_physics_core",
     "wikipedia_physics_expanded",
     "wikibooks_physics",
+    "openstax_physics_textbooks",
     "physics_arxiv_papers",
     "physics_arxiv_metadata_bulk",
     "arxiv_physics_education",
