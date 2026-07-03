@@ -299,22 +299,22 @@ def main(argv: list[str] | None = None) -> int:
     print(f"available_papers={len(papers)} selected={len(selected)} offset={args.offset}", flush=True)
 
     for paper in selected:
-        print(
-            ingest_paper(
-                conn,
-                args.data_root,
-                paper,
-                args.timeout,
-                args.retries,
-                args.retry_sleep,
-                args.extract_images,
-                args.force,
-                args.source_name,
-                args.domain,
-            ),
-            flush=True,
+        result = ingest_paper(
+            conn,
+            args.data_root,
+            paper,
+            args.timeout,
+            args.retries,
+            args.retry_sleep,
+            args.extract_images,
+            args.force,
+            args.source_name,
+            args.domain,
         )
-        if args.sleep:
+        print(result, flush=True)
+        # only throttle when we actually hit the network; skips are just a DB
+        # lookup, so a resume can churn past already-downloaded papers fast
+        if args.sleep and not result.startswith("skip"):
             time.sleep(args.sleep)
     return 0
 
