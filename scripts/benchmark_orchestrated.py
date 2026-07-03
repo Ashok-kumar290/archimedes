@@ -107,9 +107,17 @@ def run_real(args) -> int:
         mono.setdefault(p["family"], []).append(mono_hit)
 
         # --- orchestrated: decompose -> per-op lobe calls ---
+        # Selective decomposition: only decompose problems whose plan is a
+        # genuine multi-op CHAIN (the monolithic path's measured weakness).
+        # Single-op problems go straight to the lobe's strongest format (the
+        # word problem) via the mono answer — decomposing them into bare
+        # "Compute A * B." only moves them to a format the lobe saw less of.
         plan = decompose(p["prompt"])
-        if plan is None:
-            orch_answer, orch_steps = None, []
+        if plan is None or len(plan.steps) < args.decompose_min_steps:
+            # route to mono: reuse the already-computed answer, no extra calls
+            orch_answer = observed_number(mono_text)
+            orch_steps = [{"routed": "mono",
+                           "reason": f"{0 if plan is None else len(plan.steps)}-step plan"}]
         else:
             res = execute(plan, lobe)
             orch_answer, orch_steps = res.answer, res.steps
@@ -150,6 +158,10 @@ def main() -> int:
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--tokenizer", type=Path, default=None)
     parser.add_argument("--per-family", type=int, default=50)
+    parser.add_argument("--decompose-min-steps", type=int, default=2,
+                        help="only decompose plans with at least this many ops; "
+                             "shorter plans route to the monolithic path (its "
+                             "strongest format). 1 = decompose everything.")
     parser.add_argument("--seed", type=int, default=99991)
     parser.add_argument("--max-new-tokens", type=int, default=400)
     parser.add_argument("--out", type=Path, default=None)
