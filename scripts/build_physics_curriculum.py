@@ -20,6 +20,10 @@ from build_reasoning_curriculum import (  # reuse the verified arithmetic narrat
     add_narration,
     mul_narration,
     longdiv_narration,
+    add_trace,
+    mul_trace,
+    div_trace,
+    digits_trace,
     emit,
 )
 
@@ -181,28 +185,67 @@ def f_power(rng):
     return prompt, completion, ans
 
 
-FAMILIES = [
-    f_newton, f_momentum, f_weight, f_potential, f_kinematics_v,
-    f_work, f_ohm_v, f_ohm_i, f_density, f_power,
+# --- arithmetic drill families ---
+# The v1 physics lobe was PERFECT at formula selection (single-step families
+# = 100%) but weak at the computation underneath (division ~48-64%), because
+# the physics base was pretrained on physics prose, not on numbers. Drill the
+# digit-level operations directly, reusing the math lobe's verified traces.
+
+def d_mul(rng):
+    a, b = rng.randint(12, 99), rng.randint(2, 99)
+    return f"Compute {a} * {b}.", mul_trace(a, b), a * b
+
+
+def d_div(rng):
+    b, q = rng.randint(2, 9), rng.randint(12, 999)  # single-digit divisor, exact
+    a = b * q
+    return f"Compute {a} / {b}.", div_trace(a, b), q
+
+
+def d_add(rng):
+    a, b = rng.randint(10, 9999), rng.randint(10, 9999)
+    return f"Compute {a} + {b}.", add_trace(a, b), a + b
+
+
+def d_digits(rng):
+    n = rng.randint(100, 99999)
+    return f"List the digits of {n} from the units place.", digits_trace(n), n
+
+
+# Explicit per-family weights (not uniform choice + tile): families have very
+# different unique-problem-space sizes, so uniform sampling starves the small
+# ones — exactly the division formula families we most need to reinforce. The
+# division-related content (ohm_i, density, power formulas + the d_div drill)
+# is weighted heavy because division is the lobe's measured weakness.
+WEIGHTED = [
+    (f_newton, 5), (f_momentum, 5), (f_weight, 5), (f_potential, 6),
+    (f_kinematics_v, 6), (f_work, 5), (f_ohm_v, 5),
+    (f_ohm_i, 8), (f_density, 8), (f_power, 8),
+    (d_div, 14), (d_mul, 8), (d_add, 5), (d_digits, 4),
 ]
 
 
 def build(count: int, seed: int) -> list[str]:
     rng = random.Random(seed)
-    pool: list[str] = []
-    seen: set[str] = set()
-    # gather as many unique problems as the value ranges allow, then tile the
-    # pool to the requested count (repeating verified examples is fine for SFT)
-    stale = 0
-    while stale < 200_000 and len(pool) < count:
-        prompt, completion, _ = rng.choice(FAMILIES)(rng)
-        if prompt in EVAL_HOLDOUT or prompt in seen:
-            stale += 1
-            continue
+    total_weight = sum(w for _, w in WEIGHTED)
+    rows: list[str] = []
+    for fn, weight in WEIGHTED:
+        target = int(count * weight / total_weight)
+        seen: set[str] = set()
+        pool: list[str] = []
         stale = 0
-        seen.add(prompt)
-        pool.append(emit(prompt, completion))
-    rows = [pool[i % len(pool)] for i in range(count)] if pool else []
+        # gather unique problems for this family, then tile within the family
+        # to hit its target (small-space families repeat; large ones don't)
+        while len(pool) < target and stale < 40_000:
+            prompt, completion, _ = fn(rng)
+            if prompt in EVAL_HOLDOUT or prompt in seen:
+                stale += 1
+                continue
+            stale = 0
+            seen.add(prompt)
+            pool.append(emit(prompt, completion))
+        if pool:
+            rows.extend(pool[i % len(pool)] for i in range(target))
     rng.shuffle(rows)
     return rows
 
