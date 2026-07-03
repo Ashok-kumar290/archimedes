@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
-from tokenizers.pre_tokenizers import ByteLevel
+from tokenizers.pre_tokenizers import ByteLevel, Digits, Sequence
 from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import BpeTrainer
 
@@ -29,14 +29,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path, default=None)
     parser.add_argument("--vocab-size", type=int, default=32768)
     parser.add_argument("--min-frequency", type=int, default=2)
+    parser.add_argument("--name", default=None,
+                        help="tokenizer output subdir name (default derived from vocab size)")
+    parser.add_argument("--split-digits", action="store_true",
+                        help="split every digit into its own token so the model sees "
+                             "digit identity directly instead of memorizing multi-digit "
+                             "BPE chunks; the durable fix for the arithmetic bottleneck")
     args = parser.parse_args(argv)
 
     manifest = args.manifest or (args.data_root / "metadata" / "math_train_manifest_v1.jsonl")
-    out_dir = args.data_root / "tokenizers" / f"archimedes_math_bpe_{args.vocab_size}"
+    default_name = f"archimedes_bpe_{args.vocab_size}" + ("_digitsplit" if args.split_digits else "")
+    out_dir = args.data_root / "tokenizers" / (args.name or default_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tokenizer = Tokenizer(BPE(unk_token="<|unk|>"))
-    tokenizer.pre_tokenizer = ByteLevel(add_prefix_space=False)
+    if args.split_digits:
+        # Digits() must run before ByteLevel: it isolates each digit into its
+        # own pre-token, and BPE never merges across pre-token boundaries, so
+        # "13118" stays 1 3 1 1 8 and digit identity is always visible.
+        tokenizer.pre_tokenizer = Sequence([
+            Digits(individual_digits=True),
+            ByteLevel(add_prefix_space=False),
+        ])
+    else:
+        tokenizer.pre_tokenizer = ByteLevel(add_prefix_space=False)
     trainer = BpeTrainer(
         vocab_size=args.vocab_size,
         min_frequency=args.min_frequency,
