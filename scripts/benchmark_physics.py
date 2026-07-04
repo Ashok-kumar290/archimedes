@@ -59,12 +59,19 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
 def observed_number(ans: str | None) -> int | None:
     if ans is None:
         return None
-    # take the LAST integer, not the first: verbose baselines write the working
-    # before the answer ("26 + 99 = 125"), so the final answer is last. Grabbing
-    # the first number would score an operand and unfairly penalize them. Our own
-    # model emits a single clean number, so last == first for it.
-    nums = re.findall(r"-?\d[\d,]*", ans.replace(" ", ""))
-    return int(nums[-1].replace(",", "")) if nums else None
+    # CRITICAL: strip unit exponents first. Units like "m/s^2" and "kg/m^3"
+    # carry a trailing digit that is NOT the answer. Taking the last number
+    # without this scores the exponent — e.g. a density answer "5 kg/m^3"
+    # scores 3 instead of 5 — which silently tanks the density family and ~10
+    # points of overall accuracy (the 90.6% -> ~79% regression). All answers
+    # here are integers, so any digit inside an exponent is spurious.
+    s = re.sub(r"\^\s*\d+", "", ans.replace(",", "")).replace(" ", "")
+    nums = re.findall(r"-?\d+", s)
+    # then take the LAST integer: verbose baselines write the working before
+    # the answer ("26 + 99 = 125"), so the final answer is last; our model
+    # emits "<answer> <unit>", so once the exponent is gone the answer is the
+    # only number left.
+    return int(nums[-1]) if nums else None
 
 
 # physics-domain few-shot so baselines learn the answer FORMAT (not the physics);
