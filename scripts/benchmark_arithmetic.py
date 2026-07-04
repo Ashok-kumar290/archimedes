@@ -196,16 +196,23 @@ def extract_chat_answer(completion: str) -> str | None:
 
 
 class HFBackend:
-    def __init__(self, model_name: str, max_new_tokens: int = 24, chat: bool = False) -> None:
+    def __init__(self, model_name: str, max_new_tokens: int = 24, chat: bool = False,
+                 load_4bit: bool = False) -> None:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
         self.torch = torch
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, torch_dtype="auto",
-            device_map="cuda" if torch.cuda.is_available() else "cpu",
-        )
+        kwargs = dict(device_map="cuda" if torch.cuda.is_available() else "cpu")
+        if load_4bit:
+            # fit big models (e.g. 32B ~18GB in 4-bit) on a single 40GB A100
+            from transformers import BitsAndBytesConfig
+            kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
+        else:
+            kwargs["torch_dtype"] = "auto"
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)
         self.model.eval()
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token

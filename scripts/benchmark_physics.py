@@ -92,6 +92,8 @@ def main() -> int:
                         help="benchmark an open HuggingFace model instead of an Archimedes checkpoint")
     parser.add_argument("--hf-chat", action="store_true",
                         help="use the model's chat template (for instruct models)")
+    parser.add_argument("--hf-4bit", action="store_true",
+                        help="load the HF model in 4-bit (fits ~32B on a single 40GB A100)")
     parser.add_argument("--per-family", type=int, default=25)
     parser.add_argument("--seed", type=int, default=99991)  # disjoint from training seed 2718
     parser.add_argument("--max-new-tokens", type=int, default=400)
@@ -103,7 +105,7 @@ def main() -> int:
         # give the HF baseline physics-domain few-shot for the answer format
         ba.FEW_SHOT_PAIRS = PHYSICS_FEW_SHOT
         ba.FEW_SHOT = "".join(f"Problem: {p}\nAnswer: {a}\n\n" for p, a in PHYSICS_FEW_SHOT)
-        backend = HFBackend(args.hf_model, chat=args.hf_chat)
+        backend = HFBackend(args.hf_model, chat=args.hf_chat, load_4bit=args.hf_4bit)
     else:
         if args.checkpoint is None or args.tokenizer is None:
             raise SystemExit("pass either --hf-model, or both --checkpoint and --tokenizer")
