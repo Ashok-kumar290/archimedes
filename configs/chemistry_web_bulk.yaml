@@ -1,0 +1,68 @@
+# Expanded chemistry Wikipedia + Wikibooks corpus (bulk web sources) —
+# volume + breadth for the chemistry lobe pretraining base.
+sources:
+  - name: wikipedia_chemistry_expanded
+    domain: chemistry
+    license: CC-BY-SA-4.0
+    source_type: html
+    urls:
+      - https://en.wikipedia.org/wiki/Chemical_formula
+      - https://en.wikipedia.org/wiki/Empirical_formula
+      - https://en.wikipedia.org/wiki/Molecular_formula
+      - https://en.wikipedia.org/wiki/Percent_composition
+      - https://en.wikipedia.org/wiki/Electronegativity
+      - https://en.wikipedia.org/wiki/Bond_energy
+      - https://en.wikipedia.org/wiki/VSEPR_theory
+      - https://en.wikipedia.org/wiki/Molecular_geometry
+      - https://en.wikipedia.org/wiki/Orbital_hybridisation
+      - https://en.wikipedia.org/wiki/Chemical_polarity
+      - https://en.wikipedia.org/wiki/Intermolecular_force
+      - https://en.wikipedia.org/wiki/Hydrogen_bond
+      - https://en.wikipedia.org/wiki/Van_der_Waals_force
+      - https://en.wikipedia.org/wiki/State_of_matter
+      - https://en.wikipedia.org/wiki/Phase_transition
+      - https://en.wikipedia.org/wiki/Colligative_properties
+      - https://en.wikipedia.org/wiki/Osmosis
+      - https://en.wikipedia.org/wiki/Vapor_pressure
+      - https://en.wikipedia.org/wiki/Boiling_point
+      - https://en.wikipedia.org/wiki/Melting_point
+      - https://en.wikipedia.org/wiki/Buffer_solution
+      - https://en.wikipedia.org/wiki/Salt_(chemistry)
+      - https://en.wikipedia.org/wiki/Precipitation_(chemistry)
+      - https://en.wikipedia.org/wiki/Electrolysis
+      - https://en.wikipedia.org/wiki/Galvanic_cell
+      - https://en.wikipedia.org/wiki/Standard_electrode_potential
+      - https://en.wikipedia.org/wiki/Nuclear_chemistry
+      - https://en.wikipedia.org/wiki/Radioactive_decay
+      - https://en.wikipedia.org/wiki/Half-life
+      - https://en.wikipedia.org/wiki/Alkane
+      - https://en.wikipedia.org/wiki/Alkene
+      - https://en.wikipedia.org/wiki/Alkyne
+      - https://en.wikipedia.org/wiki/Alcohol_(chemistry)
+      - https://en.wikipedia.org/wiki/Carboxylic_acid
+      - https://en.wikipedia.org/wiki/Ester
+      - https://en.wikipedia.org/wiki/Amine
+      - https://en.wikipedia.org/wiki/Benzene
+      - https://en.wikipedia.org/wiki/Aromaticity
+      - https://en.wikipedia.org/wiki/Functional_group
+      - https://en.wikipedia.org/wiki/Isomer
+      - https://en.wikipedia.org/wiki/Polymer
+      - https://en.wikipedia.org/wiki/Transition_metal
+      - https://en.wikipedia.org/wiki/Halogen
+      - https://en.wikipedia.org/wiki/Noble_gas
+      - https://en.wikipedia.org/wiki/Alkali_metal
+      - https://en.wikipedia.org/wiki/Alkaline_earth_metal
+      - https://en.wikipedia.org/wiki/Coordination_complex
+      - https://en.wikipedia.org/wiki/Crystal_structure
+      - https://en.wikipedia.org/wiki/Chemical_nomenclature
+      - https://en.wikipedia.org/wiki/IUPAC_nomenclature_of_organic_chemistry
+  - name: wikibooks_chemistry
+    domain: chemistry
+    license: CC-BY-SA-4.0
+    source_type: html
+    urls:
+      - https://en.wikibooks.org/wiki/General_Chemistry
+      - https://en.wikibooks.org/wiki/Organic_Chemistry
+      - https://en.wikibooks.org/wiki/Introduction_to_Chemical_Engineering_Processes
+      - https://en.wikibooks.org/wiki/A-level_Chemistry
+      - https://en.wikibooks.org/wiki/High_School_Chemistry

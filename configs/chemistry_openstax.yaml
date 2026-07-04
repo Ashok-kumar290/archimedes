@@ -1,0 +1,15 @@
+# OpenStax chemistry textbooks (CC-BY 4.0) — the highest-quality pedagogical
+# corpus for the chemistry lobe: worked examples, definitions, problem sets.
+# Same role OpenStax played for physics. Full-book PDFs; retrieve.py extracts
+# text via pdftotext (use a long --timeout, files are 50-260 MB).
+# URLs follow the OpenStax asset pattern; if any 404s, resolve the current
+# asset URL via the OpenStax CMS API (same caveat as physics_openstax.yaml).
+sources:
+  - name: openstax_chemistry_textbooks
+    domain: chemistry
+    license: CC-BY-4.0
+    source_type: pdf
+    urls:
+      - https://assets.openstax.org/oscms-prodcms/media/documents/Chemistry2e-WEB.pdf
+      - https://assets.openstax.org/oscms-prodcms/media/documents/ChemistryAtomsFirst2e-WEB.pdf
+      - https://assets.openstax.org/oscms-prodcms/media/documents/Organic_Chemistry-WEB.pdf

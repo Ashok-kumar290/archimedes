@@ -1,0 +1,55 @@
+# Chemistry expert seed retrieval set (expert #3 of the divided brain).
+# Same provenance rules as math/physics: explicit sources, licenses stated,
+# expand via crawl + arXiv ingest. Parser = the seed_sources.yaml YAML subset.
+sources:
+  - name: wikipedia_chemistry_core
+    domain: chemistry
+    license: CC-BY-SA-4.0
+    source_type: html
+    urls:
+      - https://en.wikipedia.org/wiki/Chemistry
+      - https://en.wikipedia.org/wiki/Atom
+      - https://en.wikipedia.org/wiki/Molecule
+      - https://en.wikipedia.org/wiki/Chemical_element
+      - https://en.wikipedia.org/wiki/Periodic_table
+      - https://en.wikipedia.org/wiki/Chemical_bond
+      - https://en.wikipedia.org/wiki/Covalent_bond
+      - https://en.wikipedia.org/wiki/Ionic_bonding
+      - https://en.wikipedia.org/wiki/Metallic_bonding
+      - https://en.wikipedia.org/wiki/Mole_(unit)
+      - https://en.wikipedia.org/wiki/Molar_mass
+      - https://en.wikipedia.org/wiki/Atomic_mass
+      - https://en.wikipedia.org/wiki/Avogadro_constant
+      - https://en.wikipedia.org/wiki/Stoichiometry
+      - https://en.wikipedia.org/wiki/Chemical_reaction
+      - https://en.wikipedia.org/wiki/Chemical_equation
+      - https://en.wikipedia.org/wiki/Limiting_reagent
+      - https://en.wikipedia.org/wiki/Yield_(chemistry)
+      - https://en.wikipedia.org/wiki/Acid
+      - https://en.wikipedia.org/wiki/Base_(chemistry)
+      - https://en.wikipedia.org/wiki/PH
+      - https://en.wikipedia.org/wiki/Acid%E2%80%93base_reaction
+      - https://en.wikipedia.org/wiki/Titration
+      - https://en.wikipedia.org/wiki/Redox
+      - https://en.wikipedia.org/wiki/Oxidation_state
+      - https://en.wikipedia.org/wiki/Electrochemistry
+      - https://en.wikipedia.org/wiki/Chemical_equilibrium
+      - https://en.wikipedia.org/wiki/Le_Chatelier%27s_principle
+      - https://en.wikipedia.org/wiki/Chemical_kinetics
+      - https://en.wikipedia.org/wiki/Reaction_rate
+      - https://en.wikipedia.org/wiki/Catalysis
+      - https://en.wikipedia.org/wiki/Thermochemistry
+      - https://en.wikipedia.org/wiki/Enthalpy
+      - https://en.wikipedia.org/wiki/Entropy
+      - https://en.wikipedia.org/wiki/Gibbs_free_energy
+      - https://en.wikipedia.org/wiki/Ideal_gas_law
+      - https://en.wikipedia.org/wiki/Gas_laws
+      - https://en.wikipedia.org/wiki/Concentration
+      - https://en.wikipedia.org/wiki/Molar_concentration
+      - https://en.wikipedia.org/wiki/Solution_(chemistry)
+      - https://en.wikipedia.org/wiki/Solubility
+      - https://en.wikipedia.org/wiki/Organic_chemistry
+      - https://en.wikipedia.org/wiki/Chemical_compound
+      - https://en.wikipedia.org/wiki/Ion
+      - https://en.wikipedia.org/wiki/Electron_configuration
+      - https://en.wikipedia.org/wiki/Valence_electron

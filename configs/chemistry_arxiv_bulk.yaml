@@ -1,0 +1,28 @@
+# Bulk arXiv chemistry metadata pull (expert #3 volume driver).
+# Metadata/abstract queries; run retrieve on this file to populate
+# raw/chemistry_arxiv_metadata_bulk/, then ingest_arxiv_papers with
+# --metadata-source chemistry_arxiv_metadata_bulk to download full-text PDFs.
+# arXiv's chemistry surface is physics.chem-ph (chemical physics) plus the
+# soft-matter / bio-molecular overlap; ~1800 papers after pdftotext.
+sources:
+  - name: chemistry_arxiv_metadata_bulk
+    domain: research
+    license: arXiv metadata; paper licenses vary by record
+    source_type: xml
+    urls:
+      - https://export.arxiv.org/api/query?search_query=cat:physics.chem-ph&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.chem-ph&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.chem-ph&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.chem-ph&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.chem-ph&start=400&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:physics.chem-ph&start=500&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:cond-mat.soft&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:cond-mat.soft&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:cond-mat.soft&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:cond-mat.soft&start=300&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:q-bio.BM&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:q-bio.BM&start=100&max_results=100
+      - https://export.arxiv.org/api/query?search_query=cat:q-bio.BM&start=200&max_results=100
+      - https://export.arxiv.org/api/query?search_query=all:stoichiometry+OR+all:%22reaction+mechanism%22&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=all:%22chemical+kinetics%22&start=0&max_results=100
+      - https://export.arxiv.org/api/query?search_query=all:electrochemistry&start=0&max_results=100

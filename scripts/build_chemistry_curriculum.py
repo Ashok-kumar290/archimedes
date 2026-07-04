@@ -138,6 +138,53 @@ def f_stoich(rng):
     return prompt, completion, nB
 
 
+def f_density(rng):
+    # density = mass / volume ; single-digit volume divisor
+    d, V = rng.randint(2, 20), rng.randint(2, 9)
+    m = d * V
+    narr, ans = div_step(m, V)
+    prompt = f"A sample has mass {m} g and volume {V} mL. Find its density."
+    completion = (
+        f"Plan: density = mass / volume. "
+        f"Step 1: substitute mass = {m} g and volume = {V} mL, so density = {m} / {V}. "
+        f"Step 2: {narr}. Final answer: {ans} g/mL."
+    )
+    return prompt, completion, ans
+
+
+def f_dilution(rng):
+    # C1*V1 = C2*V2 -> C2 = (C1 * V1) / V2 (multiply then divide) — multi-step
+    while True:
+        C1, V1, V2 = rng.randint(2, 20), rng.randint(2, 20), rng.randint(2, 9)
+        if (C1 * V1) % V2 == 0:
+            break
+    n1, prod = mul_step(C1, V1)
+    narr2, C2 = div_step(prod, V2)
+    prompt = (f"A {C1} mol/L solution of volume {V1} L is adjusted to a volume of {V2} L. "
+              f"Find the new concentration.")
+    completion = (
+        f"Plan: moles are conserved, C1 * V1 = C2 * V2, so C2 = (C1 * V1) / V2. "
+        f"Step 1: C1 * V1 = {C1} * {V1}: {n1}, giving {prod}. "
+        f"Step 2: divide by V2 = {V2}, {prod} / {V2}: {narr2}. Final answer: {C2} mol/L."
+    )
+    return prompt, completion, C2
+
+
+def f_heat(rng):
+    # q = m * c * ΔT computed as (m * c) * ΔT — multi-step multiply chain
+    m, c, dT = rng.randint(2, 20), rng.randint(1, 9), rng.randint(2, 20)
+    n1, mc = mul_step(m, c)
+    n2, q = mul_step(mc, dT)
+    prompt = (f"How much heat is absorbed when {m} g of a substance with specific heat "
+              f"{c} J/(g°C) is heated by {dT} °C?")
+    completion = (
+        f"Plan: heat is q = m * c * ΔT. "
+        f"Step 1: m * c = {m} * {c}: {n1}, giving {mc}. "
+        f"Step 2: multiply by ΔT = {dT}, {mc} * {dT}: {n2}. Final answer: {q} J."
+    )
+    return prompt, completion, q
+
+
 # --- arithmetic drill families (same rationale as physics: reinforce the
 # digit-level ops the relations rest on, especially division) ---
 
@@ -162,9 +209,9 @@ def d_add(rng):
 # division is the lobe's measured weak spot. Single-step relations dominate;
 # the two-element molar mass is the one multi-step family, kept modest.
 WEIGHTED = [
-    (f_molar_mass_mono, 6), (f_mass, 6), (f_stoich, 6),
-    (f_moles, 9), (f_molarity, 9),
-    (f_molar_mass_two, 6),
+    (f_molar_mass_mono, 5), (f_mass, 5), (f_stoich, 5),
+    (f_moles, 8), (f_molarity, 8), (f_density, 8),
+    (f_molar_mass_two, 5), (f_dilution, 6), (f_heat, 5),
     (d_div, 14), (d_mul, 8), (d_add, 5),
 ]
 

@@ -43,6 +43,18 @@ def gen_problems(per_family: int, seed: int) -> list[dict]:
 
         nA, k = rng.randint(2, 40), rng.randint(2, 9)
         add("stoich", f"In a reaction, 1 mol of A yields B in a 1:{k} ratio. How many moles of B form from {nA} mol of A?", nA * k)
+
+        d, V = rng.randint(2, 20), rng.randint(2, 9)  # single-digit volume divisor
+        add("density", f"A sample has mass {d * V} g and volume {V} mL. Find its density.", d)
+
+        while True:
+            C1, V1, V2 = rng.randint(2, 20), rng.randint(2, 20), rng.randint(2, 9)
+            if (C1 * V1) % V2 == 0:
+                break
+        add("dilution", f"A {C1} mol/L solution of volume {V1} L is adjusted to a volume of {V2} L. Find the new concentration.", C1 * V1 // V2)
+
+        m, c, dT = rng.randint(2, 20), rng.randint(1, 9), rng.randint(2, 20)
+        add("heat", f"How much heat is absorbed when {m} g of a substance with specific heat {c} J/(g°C) is heated by {dT} °C?", m * c * dT)
     return problems
 
 
