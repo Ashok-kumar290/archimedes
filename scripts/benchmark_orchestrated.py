@@ -91,8 +91,18 @@ def self_test(per_family: int, seed: int) -> int:
 
 def run_real(args) -> int:
     from benchmark_arithmetic import ArchimedesBackend
+    # physics lobe: answers whole word problems (mono path + single-op families)
     backend = ArchimedesBackend(args.checkpoint, args.tokenizer, args.max_new_tokens)
-    lobe = backend.answer   # (question:str) -> extracted answer text
+    # calculator lobe for the decomposed arithmetic sub-calls. The divided-brain
+    # move: the physics lobe PLANS, a dedicated math lobe COMPUTES. If no math
+    # checkpoint is given, fall back to the physics lobe as its own calculator.
+    if args.math_checkpoint is not None:
+        math_backend = ArchimedesBackend(args.math_checkpoint, args.math_tokenizer, args.max_new_tokens)
+        lobe = math_backend.answer
+        calc_name = math_backend.name
+    else:
+        lobe = backend.answer
+        calc_name = backend.name + " (self)"
 
     problems = gen_problems(args.per_family, args.seed)
     mono: dict[str, list[bool]] = {}
@@ -132,7 +142,8 @@ def run_real(args) -> int:
             o = sum(r["orch_hit"] for r in rows) / len(rows)
             print(f"[{i + 1}/{len(problems)}] mono {m:.1%}  orch {o:.1%}", flush=True)
 
-    print(f"\nmodel: {backend.name}")
+    print(f"\nplanner (mono + single-op): {backend.name}")
+    print(f"calculator (decomposed sub-ops): {calc_name}")
     print(f"{'family':<12} {'mono':>7} {'orch':>7} {'delta':>7}  n")
     tm = to = 0
     for fam in sorted(mono):
@@ -157,6 +168,11 @@ def main() -> int:
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--tokenizer", type=Path, default=None)
+    parser.add_argument("--math-checkpoint", type=Path, default=None,
+                        help="separate math lobe to compute the decomposed arithmetic "
+                             "sub-calls (the divided-brain calculator). Falls back to the "
+                             "physics lobe if omitted.")
+    parser.add_argument("--math-tokenizer", type=Path, default=None)
     parser.add_argument("--per-family", type=int, default=50)
     parser.add_argument("--decompose-min-steps", type=int, default=2,
                         help="only decompose plans with at least this many ops; "
