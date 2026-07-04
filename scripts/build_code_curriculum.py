@@ -152,6 +152,62 @@ def _two_distinct(rng):
 
 PREFIXES = ["", "Plan: define the function, then implement it directly.\n"]
 
+# Single-edit bug injections. Each is applied once to a correct reference; the
+# result is KEPT as a debugging example only if it actually fails the oracle
+# (so every "bug" is a real, execution-confirmed bug — not a cosmetic change).
+MUTATIONS = [
+    (" + ", " - "), (" - ", " + "), (" > ", " < "), (" < ", " > "),
+    (" >= ", " > "), (" <= ", " < "), (" == ", " != "), (" != ", " == "),
+    (" += ", " -= "), ("n + 1", "n"), ("[0]", "[1]"), ("[-2]", "[-1]"),
+    ("% 2 == 0", "% 2 != 0"), ("range(2,", "range(1,"), ("i * i", "i"),
+]
+
+
+# Hand-authored bugs for tasks whose one-line solutions have no auto-mutation
+# surface. All are hang-safe (no infinite loops) and wrong-by-construction.
+MANUAL_BUGS = {
+    "reverse_string": ["def reverse_string(s):\n    return s[1:][::-1]\n"],
+    "gcd": ["def gcd(a, b):\n    while b:\n        a, b = b, a % b\n    return b\n"],
+    "count_words": ["def count_words(s):\n    return len(s.split()) + 1\n"],
+}
+
+
+def make_buggy_variants(task: Task, rng: random.Random, trials: int = 40) -> list[str]:
+    """Return reference-derived variants that are EXECUTION-CONFIRMED broken:
+    they define the function but disagree with the oracle on >=1 input."""
+    variants: list[str] = []
+    candidates = [task.solution.replace(o, n, 1) for o, n in MUTATIONS if o in task.solution]
+    candidates += MANUAL_BUGS.get(task.name, [])
+    for buggy in candidates:
+        if buggy == task.solution:
+            continue
+        try:
+            ns: dict = {}
+            exec(buggy, ns)
+            fn = ns.get(task.call)
+            if fn is None:
+                continue
+        except Exception:
+            continue
+        wrong = False
+        for _ in range(trials):
+            args = task.gen_input(rng)
+            try:
+                if fn(*args) != task.oracle(*args):
+                    wrong = True
+                    break
+            except Exception:
+                wrong = True
+                break
+        if wrong:
+            variants.append(buggy)
+    return variants
+
+
+def debug_prompt(task: Task, buggy: str) -> str:
+    return (f"The function below is meant to solve this task but contains a bug:\n"
+            f"{task.prompt}\n\n{buggy.rstrip()}\n\nReturn a corrected version of the function.")
+
 
 def verify_task(task: Task, rng: random.Random, trials: int = 200) -> int:
     """Execute the taught solution against the independent oracle. Returns the
@@ -173,17 +229,27 @@ def verify_task(task: Task, rng: random.Random, trials: int = 200) -> int:
     return bad
 
 
-def build(count: int, seed: int) -> list[str]:
+def build(count: int, seed: int) -> tuple[list[str], dict]:
+    """Emit a mix of WRITE (spec->code) and DEBUG (buggy->fixed) examples, both
+    execution-verified. Returns (rows, stats)."""
     rng = random.Random(seed)
-    per = max(1, count // len(TASKS))
+    per_task = max(2, count // len(TASKS))
     rows: list[str] = []
+    stats = {"write": 0, "debug": 0, "bugs_per_task": {}}
     for task in TASKS:
-        for _ in range(per):
-            plan = rng.choice(PREFIXES)
-            completion = plan + task.solution
-            rows.append(emit(task.prompt, completion))
+        variants = make_buggy_variants(task, rng)
+        stats["bugs_per_task"][task.name] = len(variants)
+        n_debug = per_task // 2 if variants else 0
+        n_write = per_task - n_debug
+        for _ in range(n_write):
+            rows.append(emit(task.prompt, rng.choice(PREFIXES) + task.solution))
+        for i in range(n_debug):
+            buggy = variants[i % len(variants)]
+            rows.append(emit(debug_prompt(task, buggy), task.solution))
+        stats["write"] += n_write
+        stats["debug"] += n_debug
     rng.shuffle(rows)
-    return rows
+    return rows, stats
 
 
 def main(argv=None) -> int:
@@ -209,10 +275,15 @@ def main(argv=None) -> int:
     if args.verify_only:
         return 0
 
-    rows = build(args.count, args.seed)
+    rows, stats = build(args.count, args.seed)
+    zero_bug = [t for t, n in stats["bugs_per_task"].items() if n == 0]
+    print(f"verified bugs/task: {stats['bugs_per_task']}", file=sys.stderr)
+    if zero_bug:
+        print(f"WARNING: no confirmed bug variants for: {zero_bug}", file=sys.stderr)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(rows) + "\n", encoding="utf-8")
-    print(json.dumps({"out": str(args.out), "examples": len(rows), "tasks": len(TASKS)}))
+    print(json.dumps({"out": str(args.out), "examples": len(rows), "tasks": len(TASKS),
+                      "write": stats["write"], "debug": stats["debug"]}))
     return 0
 
 

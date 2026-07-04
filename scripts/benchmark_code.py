@@ -23,7 +23,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_code_curriculum import TASKS
+from build_code_curriculum import TASKS, make_buggy_variants, debug_prompt
 
 
 def raw_generate(backend, prompt: str) -> str:
@@ -95,6 +95,8 @@ def main() -> int:
     parser.add_argument("--tokenizer", type=Path, default=None)
     parser.add_argument("--hf-model", default=None)
     parser.add_argument("--hf-chat", action="store_true")
+    parser.add_argument("--mode", choices=("write", "debug"), default="write",
+                        help="write = spec->code; debug = fix a confirmed-buggy function")
     parser.add_argument("--trials", type=int, default=20, help="held-out inputs per task")
     parser.add_argument("--seed", type=int, default=99991)
     parser.add_argument("--max-new-tokens", type=int, default=200)
@@ -114,13 +116,24 @@ def main() -> int:
             return raw_generate(backend, prompt)
 
     rng = random.Random(args.seed)
+    bug_rng = random.Random(args.seed + 1)
     results = []
     solved = 0
+    scored = 0
+    print(f"mode={args.mode}")
     print(f"{'task':16} {'pass@1':>7} {'inputs_ok':>10}")
     for task in TASKS:
         inputs = [list(task.gen_input(rng)) for _ in range(args.trials)]
         expected = [repr(task.oracle(*a)) for a in inputs]
-        raw = gen(task.prompt)
+        if args.mode == "debug":
+            variants = make_buggy_variants(task, bug_rng)
+            if not variants:
+                continue  # nothing to debug for this task
+            prompt = debug_prompt(task, variants[0])
+        else:
+            prompt = task.prompt
+        scored += 1
+        raw = gen(prompt)
         code = extract_code(raw, task.call)
         if code is None:
             passed = [False] * len(inputs)
@@ -136,8 +149,8 @@ def main() -> int:
                         "inputs_passed": ok, "n": len(inputs),
                         "code": code, "raw": raw[:500]})
 
-    print(f"\nmodel: {backend.name}")
-    print(f"SOLVED (pass@1, execution-verified): {solved}/{len(TASKS)}  ({solved/len(TASKS):.1%})")
+    print(f"\nmodel: {backend.name}  mode={args.mode}")
+    print(f"SOLVED (pass@1, execution-verified): {solved}/{scored}  ({solved/max(1,scored):.1%})")
 
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
