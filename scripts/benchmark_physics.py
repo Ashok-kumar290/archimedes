@@ -122,7 +122,7 @@ def main() -> int:
         # dispute can be audited without re-running the model
         results.append({**p, "observed": obs, "answer_text": answer_text,
                         "hit": hit, "raw": getattr(backend, "last_raw", None)})
-        if (i + 1) % 25 == 0:
+        if (i + 1) % 5 == 0:
             done = sum(1 for r in results if r["hit"])
             print(f"[{i + 1}/{len(problems)}] running accuracy {done / (i + 1):.1%}", flush=True)
 
